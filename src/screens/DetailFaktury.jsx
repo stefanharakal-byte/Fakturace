@@ -18,20 +18,19 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     setF(fak)
     const { data: fi } = await supabase.from('firmy').select('*').eq('id', fak.firma_id).single()
     setFirma(fi)
+    let od = null
     if (fak.odberatel_id) {
-      const { data: od } = await supabase.from('odberatele').select('*').eq('id', fak.odberatel_id).single()
-      setOdberatel(od)
+      const r = await supabase.from('odberatele').select('*').eq('id', fak.odberatel_id).single()
+      od = r.data; setOdberatel(od)
     }
     let u = null
     if (fak.bankovni_ucet_id) {
       const r = await supabase.from('bankovni_ucty').select('*').eq('id', fak.bankovni_ucet_id).single()
-      u = r.data
-      setUcet(u)
+      u = r.data; setUcet(u)
     }
     const { data: pol } = await supabase.from('polozky_faktury').select('*').eq('faktura_id', fakturaId).order('poradi')
     setPolozky(pol||[])
 
-    // QR platba
     try {
       const iban = ziskejIban(u)
       if (iban && fak.castka_celkem > 0) {
@@ -51,6 +50,10 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
 
   if (!f || !firma) return <div className="card"><div className="empty">Načítám…</div></div>
 
+  const barva = f.barva_faktury || odberatel?.barva_faktury || firma.barva_faktury || '#0f766e'
+  const ibanZobr = ucet ? (ucet.iban || ziskejIban(ucet) || ucet.cislo_uctu) : null
+  const poznamkaNad = f.poznamka_nad || firma.poznamka_nad || 'Fakturuji částku, dle níže uvedeného rozpisu:'
+
   return (
     <>
       <div className="page-head no-print">
@@ -69,63 +72,87 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
         {f.stav==='koncept' && <button className="btn-ghost" onClick={()=>zmenStav('vystavena')}>Označit jako vystavenou</button>}
       </div>
 
-      <div className="faktura-list">
-        <div className="fak-head">
-          <div>
-            <div className="fak-title">FAKTURA</div>
-            <div className="fak-cislo">č. {f.cislo||'(koncept)'}</div>
+      <div className="fkt">
+        <div className="fkt-top">
+          <div className="fkt-dod">
+            {firma.logo_data && <img src={firma.logo_data} alt="logo" className="fkt-logo" />}
+            <div className="fkt-mini">DODAVATEL:</div>
+            <div className="fkt-strong">{firma.nazev}</div>
+            <div>{firma.ulice}</div>
+            <div>{firma.psc} {firma.mesto}</div>
+            <div>{firma.zeme}</div>
+            <div style={{marginTop:8}}>IČ: {firma.ico}{firma.dic?` · DIČ: ${firma.dic}`:''}</div>
           </div>
+          <div className="fkt-nazev">Faktura {f.cislo||'(koncept)'}</div>
         </div>
 
-        <div className="fak-strany">
+        <div className="fkt-mid">
           <div>
-            <div className="fak-label">Dodavatel</div>
-            <strong>{firma.nazev}</strong><br/>
-            {firma.ulice}<br/>{firma.psc} {firma.mesto}<br/>
-            IČO: {firma.ico}{firma.dic?` · DIČ: ${firma.dic}`:''}<br/>
-            {firma.email}
+            {ucet && <>
+              <div className="fkt-strong">{ucet.nazev}: {ucet.cislo_uctu}</div>
+              {ibanZobr && <div className="fkt-small">IBAN: {ibanZobr}</div>}
+            </>}
+            <div style={{marginTop:8}}>Variabilní symbol: {f.variabilni_symbol||'—'}</div>
+            <div>Způsob platby: Bankovním převodem</div>
           </div>
           <div>
-            <div className="fak-label">Odběratel</div>
+            <div className="fkt-mini">ODBĚRATEL:</div>
             {odberatel ? (<>
-              <strong>{odberatel.nazev}</strong><br/>
-              {odberatel.ulice}<br/>{odberatel.psc} {odberatel.mesto}<br/>
-              {odberatel.ico?`IČO: ${odberatel.ico}`:''}{odberatel.dic?` · DIČ: ${odberatel.dic}`:''}
+              <div className="fkt-strong">{odberatel.nazev}</div>
+              <div>{odberatel.ulice}</div>
+              <div>{odberatel.psc} {odberatel.mesto}</div>
+              {(odberatel.ico||odberatel.dic) && <div style={{marginTop:6}}>{odberatel.ico?`IČ: ${odberatel.ico}`:''}{odberatel.dic?` · DIČ: ${odberatel.dic}`:''}</div>}
             </>) : <span className="muted">—</span>}
+            <div style={{marginTop:8,color:'#666'}}>Datum vystavení: {f.datum_vystaveni}</div>
+            <div style={{color:'#666'}}>Datum splatnosti: {f.datum_splatnosti}</div>
           </div>
         </div>
 
-        <div className="fak-meta">
-          <div><span className="fak-label">Datum vystavení</span>{f.datum_vystaveni}</div>
-          <div><span className="fak-label">Datum splatnosti</span>{f.datum_splatnosti}</div>
-          <div><span className="fak-label">Variabilní symbol</span>{f.variabilni_symbol||'—'}</div>
-          {ucet && <div><span className="fak-label">Bankovní účet</span>{ucet.cislo_uctu||ucet.iban}</div>}
-        </div>
+        {poznamkaNad && <div className="fkt-pozn-nad">{poznamkaNad}</div>}
 
-        <table className="fak-pol">
-          <thead><tr><th>Popis</th><th>Množ.</th><th>MJ</th><th>Cena/ks</th><th>Celkem</th></tr></thead>
+        <table className="fkt-tab">
+          <thead><tr style={{borderBottomColor: barva}}>
+            <th>Název položky a popis</th><th className="r">Množství</th><th className="r">Cena</th><th className="r">Celkem</th>
+          </tr></thead>
           <tbody>
             {polozky.map(p=>(
               <tr key={p.id}>
-                <td>{p.popis}</td><td>{p.mnozstvi}</td><td>{p.jednotka}</td>
-                <td>{formatCastka(p.cena_za_kus, f.mena)}</td>
-                <td>{formatCastka(p.mezisoucet, f.mena)}</td>
+                <td>{p.popis}</td>
+                <td className="r">{p.mnozstvi} {p.jednotka}</td>
+                <td className="r">{formatCastka(p.cena_za_kus, f.mena)}</td>
+                <td className="r">{formatCastka(p.mezisoucet, f.mena)}</td>
               </tr>))}
           </tbody>
         </table>
 
-        <div className="fak-platba">
-          <div className="fak-celkem">Celkem k úhradě: <strong>{formatCastka(f.castka_celkem, f.mena)}</strong></div>
-          {qrUrl && (
-            <div className="fak-qr">
-              <img src={qrUrl} alt="QR platba" width={130} height={130} />
-              <div className="fak-qr-popis">QR platba<br/>naskenuj v bankovní aplikaci</div>
-            </div>
-          )}
+        <div className="fkt-celkem-radek">
+          <div className="fkt-pozn">{f.poznamka ? `Poznámka: ${f.poznamka}` : ''}</div>
+          <div className="fkt-celkem"><span>Celkem: </span><strong>{formatCastka(f.castka_celkem, f.mena)}</strong></div>
         </div>
 
-        {f.poznamka && <div className="fak-pozn">{f.poznamka}</div>}
-        {firma.rejstrik_text && <div className="fak-paticka">{firma.rejstrik_text}</div>}
+        <div className="fkt-platba-radek">
+          {qrUrl && (
+            <div className="fkt-qr">
+              <div className="fkt-qr-popis">QR Platba</div>
+              <img src={qrUrl} alt="QR platba" width={100} height={100} />
+            </div>
+          )}
+          <div className="fkt-pruh" style={{background: barva}}>
+            <div><div className="fkt-pruh-l">IBAN</div><div className="fkt-pruh-v">{ibanZobr||'—'}</div></div>
+            <div><div className="fkt-pruh-l">Variabilní symbol</div><div className="fkt-pruh-v">{f.variabilni_symbol||'—'}</div></div>
+            <div><div className="fkt-pruh-l">Splatnost</div><div className="fkt-pruh-v">{f.datum_splatnosti}</div></div>
+            <div><div className="fkt-pruh-l">K úhradě</div><div className="fkt-pruh-v">{formatCastka(f.castka_celkem, f.mena)}</div></div>
+          </div>
+        </div>
+
+        {firma.podpis_data && (
+          <div className="fkt-podpis">
+            <div className="fkt-mini">Podpis a razítko:</div>
+            <img src={firma.podpis_data} alt="podpis" />
+          </div>
+        )}
+
+        {firma.rejstrik_text && <div className="fkt-paticka">{firma.rejstrik_text}</div>}
       </div>
     </>
   )
