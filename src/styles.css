@@ -137,6 +137,24 @@ tr.klik:hover { background: #f8fafc; }
 .fak-qr img { display: block; border: 1px solid var(--border); border-radius: 8px; padding: 6px; background: #fff; }
 .fak-qr-popis { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 
+/* ===== Hledání + proklik názvu + modal ===== */
+.link-nazev {
+  background: none; border: none; padding: 0; margin: 0;
+  color: var(--primary); font-weight: 600; font-size: 14px;
+  cursor: pointer; text-align: left;
+}
+.link-nazev:hover { text-decoration: underline; }
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 20px; z-index: 100; overflow-y: auto;
+}
+.modal {
+  background: #fff; border-radius: var(--radius); padding: 24px;
+  width: 100%; max-width: 720px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+
 @media print {
   .no-print, .sidebar { display: none !important; }
   .content { padding: 0 !important; }
