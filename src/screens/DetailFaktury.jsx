@@ -82,9 +82,10 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
       const predmet = naplnSablonu(firma.email_predmet || 'Faktura #CISLO#', { faktura: f, firma, odberatel, ucet })
       const telo = naplnSablonu(firma.email_text || '', { faktura: f, firma, odberatel, ucet })
       const nazevSouboru = `Faktura_${f.cislo || ''}.pdf`
+      const qrBase64 = qrUrl ? qrUrl.split(',')[1] : null
 
       const { data, error } = await supabase.functions.invoke('odeslat-fakturu', {
-        body: { prijemce: odberatel.email, predmet, telo, pdfBase64, nazevSouboru, odesilatel },
+        body: { prijemce: odberatel.email, predmet, telo, pdfBase64, nazevSouboru, odesilatel, qrBase64 },
       })
       if (error) throw error
       if (!data?.ok) throw new Error(data?.error || 'Odeslání selhalo.')
@@ -149,7 +150,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
             <div>{firma.zeme}</div>
             <div style={{marginTop:8}}>IČ: {firma.ico}{firma.dic?` · DIČ: ${firma.dic}`:''}</div>
           </div>
-          <div className="fkt-nazev">Faktura {f.cislo||'(koncept)'}</div>
+          <div className="fkt-nazev">Faktura&nbsp;{f.cislo||'(koncept)'}</div>
         </div>
 
         <div className="fkt-mid">
