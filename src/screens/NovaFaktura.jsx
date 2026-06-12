@@ -46,6 +46,8 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
         next.mena = od.vychozi_mena || 'CZK'
         next.jazyk = od.vychozi_jazyk || 'cs'
         next.datum_splatnosti = pridejDny(next.datum_vystaveni, od.vychozi_splatnost||14)
+        if (od.vychozi_bankovni_ucet_id) next.bankovni_ucet_id = od.vychozi_bankovni_ucet_id
+        if (od.vychozi_text) next.poznamka = od.vychozi_text
       }
     }
     if (k === 'datum_vystaveni') {
