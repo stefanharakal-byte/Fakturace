@@ -5,8 +5,6 @@ import { ziskejIban, spaydString } from '../lib/platba'
 import { nazevBankyZUctu } from '../lib/banky'
 import { naplnSablonu, mailtoOdkaz } from '../lib/email'
 import QRCode from 'qrcode'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 
 export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
   const [f, setF] = useState(null)
@@ -60,7 +58,8 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     window.location.href = mailtoOdkaz({ prijemce: odberatel?.email || '', predmet, telo })
   }
 
-  async function serverovePdfData() {
+  // Sestaví data pro serverovou funkci generuj-pdf
+  function serverovePdfData() {
     const ibanText = ucet ? (ucet.iban || ziskejIban(ucet) || '') : ''
     const ibanZkr = ibanText ? ibanText.replace(/(.{4})/g, '$1 ').trim() : ''
     const qrSpayd = (ibanText && f.castka_celkem > 0)
@@ -85,14 +84,20 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     }
   }
 
+  // Vytvoří serverové PDF a vrátí base64 (bez dat: prefixu)
+  async function vyrobServerovePdf() {
+    const data = serverovePdfData()
+    const { data: res, error } = await supabase.functions.invoke('generuj-pdf', { body: data })
+    if (error) throw error
+    if (!res?.ok) throw new Error(res?.error || 'Generování PDF selhalo.')
+    return res.pdfBase64
+  }
+
   async function stahniServerovePdf() {
     setOdeslMsg(null); setOdesilam(true)
     try {
-      const data = await serverovePdfData()
-      const { data: res, error } = await supabase.functions.invoke('generuj-pdf', { body: data })
-      if (error) throw error
-      if (!res?.ok) throw new Error(res?.error || 'Generování selhalo.')
-      const bin = atob(res.pdfBase64)
+      const base64 = await vyrobServerovePdf()
+      const bin = atob(base64)
       const arr = new Uint8Array(bin.length)
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
       const blob = new Blob([arr], { type: 'application/pdf' })
@@ -106,6 +111,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     } finally { setOdesilam(false) }
   }
 
+  // Odeslání e-mailem se serverovým PDF v příloze
   async function odeslatEmail() {
     setOdeslMsg(null)
     if (!odberatel?.email) { setOdeslMsg({ type:'err', text:'Odběratel nemá vyplněný e-mail (doplň ho v Odběratelích).' }); return }
@@ -114,14 +120,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
 
     setOdesilam(true)
     try {
-      const el = document.getElementById('faktura-pdf')
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-      const img = canvas.toDataURL('image/png')
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
-      const sirka = 210
-      const vyska = (canvas.height * sirka) / canvas.width
-      pdf.addImage(img, 'PNG', 0, 0, sirka, Math.min(vyska, 297))
-      const pdfBase64 = pdf.output('datauristring').split(',')[1]
+      const pdfBase64 = await vyrobServerovePdf()
 
       const predmet = naplnSablonu(firma.email_predmet || 'Faktura #CISLO#', { faktura: f, firma, odberatel, ucet })
       const telo = naplnSablonu(firma.email_text || '', { faktura: f, firma, odberatel, ucet })
@@ -167,8 +166,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
           <button className="btn-ghost" onClick={onZpet}>← Zpět</button>
           <button className="btn-ghost" onClick={()=>onUpravit(fakturaId)}>Upravit</button>
           <button className="btn-primary" onClick={odeslatEmail} disabled={odesilam}>{odesilam?'Pracuji…':'✉ Odeslat e-mailem'}</button>
-          <button className="btn-ghost" onClick={stahniServerovePdf} disabled={odesilam}>PDF (server)</button>
-          <button className="btn-ghost" onClick={()=>window.print()}>Tisk PDF</button>
+          <button className="btn-ghost" onClick={stahniServerovePdf} disabled={odesilam}>Stáhnout PDF</button>
         </div>
       </div>
 
