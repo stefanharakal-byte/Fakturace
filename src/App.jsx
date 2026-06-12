@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatCastka, STAVY } from './lib/helpers'
+import Dashboard from './screens/Dashboard'
 import Nastaveni from './screens/Nastaveni'
 import Odberatele from './screens/Odberatele'
 import NovaFaktura from './screens/NovaFaktura'
@@ -9,7 +10,7 @@ import DetailFaktury from './screens/DetailFaktury'
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState('faktury')
+  const [page, setPage] = useState('prehled')
   const [editId, setEditId] = useState(null)
   const [detailId, setDetailId] = useState(null)
 
@@ -23,12 +24,13 @@ export default function App() {
   if (!session) return <Login />
 
   function jdiNa(p) { setPage(p); setEditId(null); setDetailId(null) }
+  function otevriFakturu(id) { setDetailId(id); setPage('faktury') }
 
   return (
     <div className="layout">
       <aside className="sidebar no-print">
         <div className="brand">📄 Fakturace</div>
-        {[['faktury','Faktury'],['odberatele','Odběratelé'],['nastaveni','Nastavení']].map(([k,v])=>(
+        {[['prehled','Přehled'],['faktury','Faktury'],['odberatele','Odběratelé'],['nastaveni','Nastavení']].map(([k,v])=>(
           <button key={k} className={'nav-item'+(page===k?' active':'')} onClick={()=>jdiNa(k)}>{v}</button>
         ))}
         <div className="sidebar-bottom">
@@ -36,6 +38,8 @@ export default function App() {
         </div>
       </aside>
       <main className="content">
+        {page==='prehled' && <Dashboard onDetail={otevriFakturu} />}
+
         {page==='faktury' && detailId && (
           <DetailFaktury fakturaId={detailId}
             onZpet={()=>setDetailId(null)}
