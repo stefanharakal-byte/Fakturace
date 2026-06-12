@@ -247,7 +247,59 @@ tr.klik:hover { background: #f8fafc; }
 .klient-hlavicka-text .jmeno { font-weight: 700; font-size: 16px; }
 .klient-hlavicka-text .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
-/* ===== Lišta akcí v detailu faktury ===== */
+/* ===== Horní lišta (top navigace, varianta 2) ===== */
+.layout-top { min-height: 100vh; }
+.topbar { background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+.topbar-in { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+.topbar-left { display: flex; align-items: center; gap: 28px; }
+.topbar .brand { padding: 14px 0; font-size: 18px; font-weight: 800; }
+.topnav { display: flex; gap: 4px; }
+.topnav-item {
+  background: transparent; color: var(--muted); font-size: 14px; font-weight: 600;
+  padding: 18px 16px; border-radius: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+}
+.topnav-item:hover { color: var(--text); }
+.topnav-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.content-top { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+/* "+ Vytvořit nový" rozbalovací nabídka */
+.novy-wrap { position: relative; }
+.novy-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 60;
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.16); padding: 6px; min-width: 210px;
+}
+.novy-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: transparent; color: var(--text); font-size: 14px; font-weight: 500;
+  padding: 11px 12px; border-radius: 7px;
+}
+.novy-menu button:hover { background: #f1f5ff; color: var(--primary); }
+
+/* Podzáložky (Vystavené / Pravidelné) */
+.subtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.subtab {
+  background: transparent; color: var(--muted); font-size: 14px; font-weight: 600;
+  padding: 10px 16px; border-radius: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.subtab:hover { color: var(--text); }
+.subtab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+@media (max-width: 760px) {
+  /* Horní lišta na mobilu: zalomit */
+  .topbar-in { flex-direction: column; align-items: stretch; padding: 8px 14px; gap: 6px; }
+  .topbar-left { flex-direction: column; align-items: stretch; gap: 2px; }
+  .topbar .brand { padding: 6px 2px; }
+  .topnav { flex-wrap: wrap; gap: 2px; }
+  .topnav-item { padding: 10px 12px; border-bottom: none; border-radius: 7px; margin-bottom: 0; }
+  .topnav-item.active { background: #eef2ff; }
+  .topbar-right { justify-content: space-between; }
+  .novy-menu { right: auto; left: 0; }
+  .content-top { padding: 16px; }
+}
+
+
 .akce-lista {
   display: flex; flex-wrap: wrap; gap: 8px;
   background: var(--panel); border: 1px solid var(--border);
