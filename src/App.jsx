@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from './lib/supabase'
 import { formatCastka, STAVY, formatDatum } from './lib/helpers'
 import Dashboard from './screens/Dashboard'
@@ -14,6 +14,10 @@ export default function App() {
   const [page, setPage] = useState('prehled')
   const [editId, setEditId] = useState(null)
   const [detailId, setDetailId] = useState(null)
+  const [zalozkaFaktur, setZalozkaFaktur] = useState('vystavene') // 'vystavene' | 'pravidelne'
+  const [novyOpen, setNovyOpen] = useState(false)
+  const [novyOdberatel, setNovyOdberatel] = useState(false)
+  const novyRef = useRef(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
@@ -21,24 +25,57 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  // Zavreni "+ Vytvořit nový ▾" pri kliknuti mimo
+  useEffect(() => {
+    function klikMimo(e) { if (novyRef.current && !novyRef.current.contains(e.target)) setNovyOpen(false) }
+    document.addEventListener('mousedown', klikMimo)
+    return () => document.removeEventListener('mousedown', klikMimo)
+  }, [])
+
   if (loading) return <div className="login-wrap">Načítám…</div>
   if (!session) return <Login />
 
   function jdiNa(p) { setPage(p); setEditId(null); setDetailId(null) }
-  function otevriFakturu(id) { setDetailId(id); setPage('faktury') }
+  function otevriFakturu(id) { setDetailId(id); setPage('faktury'); setZalozkaFaktur('vystavene') }
+
+  function novaFaktura() { setNovyOpen(false); setEditId(null); setPage('novaFaktura') }
+  function novyOdber() { setNovyOpen(false); setNovyOdberatel(true); setPage('odberatele') }
+  function novaPravidelna() {
+    setNovyOpen(false); setDetailId(null); setEditId(null)
+    setPage('faktury'); setZalozkaFaktur('pravidelne')
+  }
+
+  const menu = [['prehled','Přehled'],['faktury','Faktury'],['odberatele','Odběratelé'],['nastaveni','Nastavení']]
 
   return (
-    <div className="layout">
-      <aside className="sidebar no-print">
-        <div className="brand">📄 Fakturace</div>
-        {[['prehled','Přehled'],['faktury','Faktury'],['pravidelne','Pravidelné'],['odberatele','Odběratelé'],['nastaveni','Nastavení']].map(([k,v])=>(
-          <button key={k} className={'nav-item'+(page===k?' active':'')} onClick={()=>jdiNa(k)}>{v}</button>
-        ))}
-        <div className="sidebar-bottom">
-          <button className="btn-ghost" style={{width:'100%'}} onClick={()=>supabase.auth.signOut()}>Odhlásit se</button>
+    <div className="layout-top">
+      <header className="topbar no-print">
+        <div className="topbar-in">
+          <div className="topbar-left">
+            <div className="brand">📄 Fakturace</div>
+            <nav className="topnav">
+              {menu.map(([k,v])=>(
+                <button key={k} className={'topnav-item'+(page===k?' active':'')} onClick={()=>jdiNa(k)}>{v}</button>
+              ))}
+            </nav>
+          </div>
+          <div className="topbar-right" ref={novyRef}>
+            <div className="novy-wrap">
+              <button className="btn-primary" onClick={()=>setNovyOpen(o=>!o)}>+ Vytvořit nový ▾</button>
+              {novyOpen && (
+                <div className="novy-menu">
+                  <button onClick={novaFaktura}>📄 Nová faktura</button>
+                  <button onClick={novyOdber}>👤 Nový odběratel</button>
+                  <button onClick={novaPravidelna}>🔁 Pravidelná faktura</button>
+                </div>
+              )}
+            </div>
+            <button className="btn-ghost" onClick={()=>supabase.auth.signOut()}>Odhlásit se</button>
+          </div>
         </div>
-      </aside>
-      <main className="content">
+      </header>
+
+      <main className="content-top">
         {page==='prehled' && <Dashboard onDetail={otevriFakturu} />}
 
         {page==='faktury' && detailId && (
@@ -47,18 +84,28 @@ export default function App() {
             onUpravit={(id)=>{ setDetailId(null); setEditId(id); setPage('novaFaktura') }} />
         )}
         {page==='faktury' && !detailId && (
-          <SeznamFaktur
-            onNova={()=>{ setEditId(null); setPage('novaFaktura') }}
-            onDetail={(id)=>setDetailId(id)}
-            onUpravit={(id)=>{ setEditId(id); setPage('novaFaktura') }} />
+          <>
+            <div className="page-head">
+              <h1>Faktury</h1>
+            </div>
+            <div className="subtabs no-print">
+              <button className={'subtab'+(zalozkaFaktur==='vystavene'?' active':'')} onClick={()=>setZalozkaFaktur('vystavene')}>Vystavené</button>
+              <button className={'subtab'+(zalozkaFaktur==='pravidelne'?' active':'')} onClick={()=>setZalozkaFaktur('pravidelne')}>Pravidelné</button>
+            </div>
+            {zalozkaFaktur==='vystavene'
+              ? <SeznamFaktur
+                  onNova={()=>{ setEditId(null); setPage('novaFaktura') }}
+                  onDetail={(id)=>setDetailId(id)}
+                  onUpravit={(id)=>{ setEditId(id); setPage('novaFaktura') }} />
+              : <PravidelneFaktury onDetail={otevriFakturu} skrytNadpis />}
+          </>
         )}
         {page==='novaFaktura' && (
           <NovaFaktura fakturaId={editId}
             onHotovo={()=>jdiNa('faktury')}
             onZrusit={()=>jdiNa('faktury')} />
         )}
-        {page==='odberatele' && <Odberatele />}
-        {page==='pravidelne' && <PravidelneFaktury onDetail={otevriFakturu} />}
+        {page==='odberatele' && <Odberatele autoNovy={novyOdberatel} onAutoNovyHotovo={()=>setNovyOdberatel(false)} />}
         {page==='nastaveni' && <Nastaveni />}
       </main>
     </div>
@@ -91,8 +138,8 @@ function SeznamFaktur({ onNova, onDetail, onUpravit }) {
 
   return (
     <>
-      <div className="page-head">
-        <h1>Faktury</h1>
+      <div className="page-head" style={{marginTop:4}}>
+        <span className="muted">{loading?'':`${faktury.length} faktur`}</span>
         <button className="btn-primary" onClick={onNova}>+ Nová faktura</button>
       </div>
       <div className="card">
@@ -158,14 +205,14 @@ function KartaKlientaModal({ odberatelId, onZavrit, onDetailFaktury }) {
   const pocet = faktury.length
   const celkem = faktury.reduce((s,f)=>s+Number(f.castka_celkem||0),0)
   const dluh = faktury.filter(f=>f.stav!=='zaplacena').reduce((s,f)=>s+Number(f.castka_celkem||0),0)
-  const iniciály = (klient?.nazev||'?').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase()
+  const inicialy = (klient?.nazev||'?').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase()
 
   return (
     <div className="modal-overlay" onClick={onZavrit}>
       <div className="modal" onClick={(e)=>e.stopPropagation()}>
         <div className="modal-head">
           <div className="klient-hlavicka">
-            <div className="klient-avatar">{iniciály}</div>
+            <div className="klient-avatar">{inicialy}</div>
             <div className="klient-hlavicka-text">
               <div className="jmeno">{klient?.nazev||'Načítám…'}</div>
               {klient && <div className="sub">
@@ -173,7 +220,7 @@ function KartaKlientaModal({ odberatelId, onZavrit, onDetailFaktury }) {
               </div>}
             </div>
           </div>
-          <button className="btn-ghost" onClick={onZavrit}>✕</button>
+          <button className="btn-ghost" onClick={onZavrit}>🗑</button>
         </div>
 
         {loading ? <div className="empty">Načítám…</div> : <>
