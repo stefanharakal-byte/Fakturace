@@ -54,14 +54,58 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     await supabase.from('faktury').update({ stav }).eq('id', fakturaId); nacti()
   }
 
-  // Záložní možnost: otevřít e-mail v klientu (mailto, bez PDF)
   function otevritVKlientu() {
     const predmet = naplnSablonu(firma.email_predmet || 'Faktura #CISLO#', { faktura: f, firma, odberatel, ucet })
     const telo = naplnSablonu(firma.email_text || '', { faktura: f, firma, odberatel, ucet })
     window.location.href = mailtoOdkaz({ prijemce: odberatel?.email || '', predmet, telo })
   }
 
-  // Hlavní odeslání: vyrobí PDF z náhledu a odešle přes Edge Function (Resend)
+  async function serverovePdfData() {
+    const ibanText = ucet ? (ucet.iban || ziskejIban(ucet) || '') : ''
+    const ibanZkr = ibanText ? ibanText.replace(/(.{4})/g, '$1 ').trim() : ''
+    const qrSpayd = (ibanText && f.castka_celkem > 0)
+      ? spaydString({ iban: ibanText, castka: f.castka_celkem, mena: f.mena, vs: f.variabilni_symbol, msg: 'Faktura ' + (f.cislo || '') })
+      : null
+    return {
+      firma: {
+        nazev: firma.nazev, ico: firma.ico, ulice: firma.ulice, psc: firma.psc, mesto: firma.mesto,
+        zeme: firma.zeme, rejstrik_text: firma.rejstrik_text, telefon: firma.telefon, email: firma.email,
+        barva_faktury: f.barva_faktury || odberatel?.barva_faktury || firma.barva_faktury || '#e8841f',
+        logo_png: firma.logo_data || null, podpis_png: firma.podpis_data || null,
+      },
+      odberatel: { nazev: odberatel?.nazev, ulice: odberatel?.ulice, psc: odberatel?.psc, mesto: odberatel?.mesto, ico: odberatel?.ico, dic: odberatel?.dic },
+      ucet: ucet ? { banka: nazevBankyZUctu(ucet.cislo_uctu) || ucet.nazev || '', cislo_uctu: ucet.cislo_uctu || ucet.iban } : null,
+      ibanText: ibanZkr,
+      faktura: {
+        cislo: f.cislo, vs: f.variabilni_symbol, datum_vystaveni: f.datum_vystaveni, datum_splatnosti: f.datum_splatnosti,
+        mena: f.mena, castka_celkem: f.castka_celkem, poznamka: f.poznamka, poznamka_nad: f.poznamka_nad,
+      },
+      polozky: polozky.map(p => ({ popis: p.popis, mnozstvi: p.mnozstvi, jednotka: p.jednotka, cena_za_kus: p.cena_za_kus, mezisoucet: p.mezisoucet })),
+      qrSpayd,
+    }
+  }
+
+  async function stahniServerovePdf() {
+    setOdeslMsg(null); setOdesilam(true)
+    try {
+      const data = await serverovePdfData()
+      const { data: res, error } = await supabase.functions.invoke('generuj-pdf', { body: data })
+      if (error) throw error
+      if (!res?.ok) throw new Error(res?.error || 'Generování selhalo.')
+      const bin = atob(res.pdfBase64)
+      const arr = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+      const blob = new Blob([arr], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `Faktura_${f.cislo || ''}.pdf`; a.click()
+      URL.revokeObjectURL(url)
+      setOdeslMsg({ type: 'ok', text: 'PDF vygenerováno.' })
+    } catch (e) {
+      setOdeslMsg({ type: 'err', text: 'Chyba PDF: ' + (e.message || e) })
+    } finally { setOdesilam(false) }
+  }
+
   async function odeslatEmail() {
     setOdeslMsg(null)
     if (!odberatel?.email) { setOdeslMsg({ type:'err', text:'Odběratel nemá vyplněný e-mail (doplň ho v Odběratelích).' }); return }
@@ -101,7 +145,6 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
 
   if (!f || !firma) return <div className="card"><div className="empty">Načítám…</div></div>
 
-  // barva: faktura > klient > firma > výchozí
   const barva = f.barva_faktury || odberatel?.barva_faktury || firma.barva_faktury || '#0f766e'
   const textNaPruhu = (() => {
     const h = (barva || '').replace('#','')
@@ -123,7 +166,8 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
         <div style={{display:'flex',gap:8}}>
           <button className="btn-ghost" onClick={onZpet}>← Zpět</button>
           <button className="btn-ghost" onClick={()=>onUpravit(fakturaId)}>Upravit</button>
-          <button className="btn-primary" onClick={odeslatEmail} disabled={odesilam}>{odesilam?'Odesílám…':'✉ Odeslat e-mailem'}</button>
+          <button className="btn-primary" onClick={odeslatEmail} disabled={odesilam}>{odesilam?'Pracuji…':'✉ Odeslat e-mailem'}</button>
+          <button className="btn-ghost" onClick={stahniServerovePdf} disabled={odesilam}>PDF (server)</button>
           <button className="btn-ghost" onClick={()=>window.print()}>Tisk PDF</button>
         </div>
       </div>
