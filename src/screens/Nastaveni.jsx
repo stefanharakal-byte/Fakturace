@@ -39,6 +39,14 @@ function Firma() {
 
   function set(k, v) { setF({ ...f, [k]: v }) }
 
+  function nahrajObrazek(k, file) {
+    if (!file) return
+    if (file.size > 1.5 * 1024 * 1024) { setMsg({ type:'err', text:'Obrázek je moc velký (max 1,5 MB).' }); return }
+    const reader = new FileReader()
+    reader.onload = () => set(k, reader.result)
+    reader.readAsDataURL(file)
+  }
+
   async function uloz() {
     setBusy(true); setMsg(null)
     const { data: u } = await supabase.auth.getUser()
@@ -68,6 +76,42 @@ function Firma() {
         <label>Patička / text o registraci</label>
         <textarea value={f.rejstrik_text||''} onChange={e=>set('rejstrik_text',e.target.value)} rows={2} />
       </div>
+
+      <h3 style={{marginTop:24,marginBottom:4}}>Vzhled faktury</h3>
+      <div className="grid2">
+        <div className="field">
+          <label>Barva faktury</label>
+          <div style={{display:'flex',gap:10,alignItems:'center'}}>
+            <input type="color" value={f.barva_faktury||'#0f766e'} onChange={e=>set('barva_faktury',e.target.value)}
+              style={{width:48,height:40,padding:2,cursor:'pointer'}} />
+            <input value={f.barva_faktury||'#0f766e'} onChange={e=>set('barva_faktury',e.target.value)} style={{maxWidth:120}} />
+          </div>
+        </div>
+        <div className="field">
+          <label>Poznámka nad položkami</label>
+          <input value={f.poznamka_nad||''} onChange={e=>set('poznamka_nad',e.target.value)}
+            placeholder="Fakturuji částku, dle níže uvedeného rozpisu:" />
+        </div>
+      </div>
+      <div className="grid2">
+        <div className="field">
+          <label>Logo (nahoře na faktuře)</label>
+          <input type="file" accept="image/*" onChange={e=>nahrajObrazek('logo_data', e.target.files[0])} />
+          {f.logo_data && <div style={{marginTop:8,display:'flex',gap:10,alignItems:'center'}}>
+            <img src={f.logo_data} alt="logo" style={{maxHeight:50,maxWidth:160,border:'1px solid var(--border)',borderRadius:6,padding:4}} />
+            <button className="btn-ghost" onClick={()=>set('logo_data',null)}>Odebrat</button>
+          </div>}
+        </div>
+        <div className="field">
+          <label>Podpis / razítko (dole na faktuře)</label>
+          <input type="file" accept="image/*" onChange={e=>nahrajObrazek('podpis_data', e.target.files[0])} />
+          {f.podpis_data && <div style={{marginTop:8,display:'flex',gap:10,alignItems:'center'}}>
+            <img src={f.podpis_data} alt="podpis" style={{maxHeight:50,maxWidth:160,border:'1px solid var(--border)',borderRadius:6,padding:4}} />
+            <button className="btn-ghost" onClick={()=>set('podpis_data',null)}>Odebrat</button>
+          </div>}
+        </div>
+      </div>
+
       <div style={{marginTop:16,display:'flex',gap:12,alignItems:'center'}}>
         <button className="btn-primary" onClick={uloz} disabled={busy}>{busy?'Ukládám…':'Uložit firmu'}</button>
         {msg && <span className={`msg ${msg.type}`}>{msg.text}</span>}
