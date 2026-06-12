@@ -8,7 +8,7 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
   const [ucty, setUcty] = useState([])
   const [rady, setRady] = useState([])
   const [f, setF] = useState(null)
-  const [polozky, setPolozky] = useState([{ popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:0, sleva:0 }])
+  const [polozky, setPolozky] = useState([{ popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:'', sleva:'' }])
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
 
@@ -27,7 +27,7 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
     if (fakturaId) {
       const { data: fak } = await supabase.from('faktury').select('*').eq('id', fakturaId).single()
       const { data: pol } = await supabase.from('polozky_faktury').select('*').eq('faktura_id', fakturaId).order('poradi')
-      setF(fak); setPolozky(pol?.length ? pol : [{ popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:0, sleva:0 }])
+      setF(fak); setPolozky(pol?.length ? pol : [{ popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:'', sleva:'' }])
     } else {
       setF({
         odberatel_id: '', bankovni_ucet_id: uc?.[0]?.id||'', ciselna_rada_id: ra?.[0]?.id||'',
@@ -60,7 +60,7 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
   function setPol(i, k, v) {
     const next = [...polozky]; next[i] = { ...next[i], [k]: v }; setPolozky(next)
   }
-  function pridejPol() { setPolozky([...polozky, { popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:0, sleva:0 }]) }
+  function pridejPol() { setPolozky([...polozky, { popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:'', sleva:'' }]) }
   function smazPol(i) { setPolozky(polozky.filter((_,idx)=>idx!==i)) }
 
   const celkem = spoctiFakturu(polozky)
@@ -88,7 +88,7 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
         cislo: cislo || null,
         variabilni_symbol: f.variabilni_symbol || (cislo ? cislo.replace(/\D/g,'') : null),
         datum_vystaveni: f.datum_vystaveni, datum_splatnosti: f.datum_splatnosti, datum_plneni: f.datum_plneni,
-        mena: f.mena, kurz: f.kurz||1, jazyk: f.jazyk, poznamka: f.poznamka,
+        mena: f.mena, kurz: Number(f.kurz)||1, jazyk: f.jazyk, poznamka: f.poznamka,
         barva_faktury: odber?.barva_faktury || firma.barva_faktury || null,
         poznamka_nad: firma.poznamka_nad || null,
         stav: vystavit ? 'vystavena' : 'koncept',
@@ -162,7 +162,7 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
           <div className="field"><label>Variabilní symbol</label>
             <input value={f.variabilni_symbol||''} onChange={e=>set('variabilni_symbol',e.target.value)} placeholder="vygeneruje se z čísla" /></div>
           {f.mena==='EUR' && <div className="field"><label>Kurz (1 EUR = ? CZK)</label>
-            <input type="number" value={f.kurz} onChange={e=>set('kurz',e.target.value)} /></div>}
+            <input type="number" value={f.kurz} onChange={e=>set('kurz',e.target.value)} onFocus={e=>e.target.select()} /></div>}
         </div>
 
         <h3 style={{marginTop:24}}>Položky</h3>
@@ -173,10 +173,10 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
               const radek = Number(p.mnozstvi||0)*Number(p.cena_za_kus||0)*(1-Number(p.sleva||0)/100)
               return (<tr key={i}>
                 <td><input value={p.popis} onChange={e=>setPol(i,'popis',e.target.value)} placeholder="Popis položky" /></td>
-                <td><input type="number" style={{width:70}} value={p.mnozstvi} onChange={e=>setPol(i,'mnozstvi',e.target.value)} /></td>
+                <td><input type="number" style={{width:70}} value={p.mnozstvi} onChange={e=>setPol(i,'mnozstvi',e.target.value)} onFocus={e=>e.target.select()} /></td>
                 <td><input style={{width:50}} value={p.jednotka} onChange={e=>setPol(i,'jednotka',e.target.value)} /></td>
-                <td><input type="number" style={{width:100}} value={p.cena_za_kus} onChange={e=>setPol(i,'cena_za_kus',e.target.value)} /></td>
-                <td><input type="number" style={{width:60}} value={p.sleva} onChange={e=>setPol(i,'sleva',e.target.value)} /></td>
+                <td><input type="number" style={{width:100}} value={p.cena_za_kus} onChange={e=>setPol(i,'cena_za_kus',e.target.value)} onFocus={e=>e.target.select()} placeholder="0" /></td>
+                <td><input type="number" style={{width:60}} value={p.sleva} onChange={e=>setPol(i,'sleva',e.target.value)} onFocus={e=>e.target.select()} placeholder="0" /></td>
                 <td style={{whiteSpace:'nowrap'}}>{formatCastka(radek, f.mena)}</td>
                 <td><button className="btn-ghost" onClick={()=>smazPol(i)}>✕</button></td>
               </tr>)
