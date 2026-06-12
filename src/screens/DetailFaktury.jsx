@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { formatCastka, STAVY } from '../lib/helpers'
+import { formatCastka, STAVY, formatDatum } from '../lib/helpers'
 import { ziskejIban, spaydString } from '../lib/platba'
 import QRCode from 'qrcode'
 
@@ -114,8 +114,8 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
               <div>{odberatel.psc} {odberatel.mesto}</div>
               {(odberatel.ico||odberatel.dic) && <div style={{marginTop:6}}>{odberatel.ico?`IČ: ${odberatel.ico}`:''}{odberatel.dic?` · DIČ: ${odberatel.dic}`:''}</div>}
             </>) : <span className="muted">—</span>}
-            <div style={{marginTop:8,color:'#666'}}>Datum vystavení: {f.datum_vystaveni}</div>
-            <div style={{color:'#666'}}>Datum splatnosti: {f.datum_splatnosti}</div>
+            <div style={{marginTop:8,color:'#666'}}>Datum vystavení: {formatDatum(f.datum_vystaveni)}</div>
+            <div style={{color:'#666'}}>Datum splatnosti: {formatDatum(f.datum_splatnosti)}</div>
           </div>
         </div>
 
@@ -151,7 +151,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
           <div className="fkt-pruh" style={{background: barva, color: textNaPruhu}}>
             <div><div className="fkt-pruh-l">IBAN</div><div className="fkt-pruh-v">{ibanZobr||'—'}</div></div>
             <div><div className="fkt-pruh-l">Variabilní symbol</div><div className="fkt-pruh-v">{f.variabilni_symbol||'—'}</div></div>
-            <div><div className="fkt-pruh-l">Splatnost</div><div className="fkt-pruh-v">{f.datum_splatnosti}</div></div>
+            <div><div className="fkt-pruh-l">Splatnost</div><div className="fkt-pruh-v">{formatDatum(f.datum_splatnosti)}</div></div>
             <div><div className="fkt-pruh-l">K úhradě</div><div className="fkt-pruh-v">{formatCastka(f.castka_celkem, f.mena)}</div></div>
           </div>
         </div>
