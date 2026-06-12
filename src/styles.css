@@ -129,9 +129,18 @@ tr.klik:hover { background: #f8fafc; }
 .fak-celkem strong { font-size: 22px; }
 .fak-pozn { margin-top: 24px; padding: 14px; background: #f8fafc; border-radius: 8px; font-size: 14px; }
 .fak-paticka { margin-top: 20px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
+
+/* ===== QR platba ===== */
+.fak-platba { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+.fak-platba .fak-celkem { flex: 1; }
+.fak-qr { text-align: center; }
+.fak-qr img { display: block; border: 1px solid var(--border); border-radius: 8px; padding: 6px; background: #fff; }
+.fak-qr-popis { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
 @media print {
   .no-print, .sidebar { display: none !important; }
   .content { padding: 0 !important; }
   .faktura-list { border: none; padding: 0; max-width: 100%; }
   body { background: #fff; }
+  .fak-qr img { border-color: #ccc; }
 }
