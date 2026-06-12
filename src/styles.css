@@ -130,7 +130,7 @@ tr.klik:hover { background: #f8fafc; }
 .fak-pozn { margin-top: 24px; padding: 14px; background: #f8fafc; border-radius: 8px; font-size: 14px; }
 .fak-paticka { margin-top: 20px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
 
-/* ===== QR platba ===== */
+/* ===== QR platba (staré) ===== */
 .fak-platba { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
 .fak-platba .fak-celkem { flex: 1; }
 .fak-qr { text-align: center; }
@@ -172,6 +172,38 @@ tr.klik:hover { background: #f8fafc; }
 .graf-bar { width: 100%; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 2px; transition: height .2s; }
 .graf-popis { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
+/* ===== Nový vzhled faktury (dle předlohy) ===== */
+.fkt { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:36px; max-width:820px; color:#2b2b2b; font-size:13px; line-height:1.5; }
+.fkt-top { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px dotted #c9c9c9; padding-bottom:16px; }
+.fkt-dod { max-width:48%; }
+.fkt-logo { max-height:60px; max-width:200px; margin-bottom:10px; display:block; }
+.fkt-mini { font-size:10px; font-weight:700; color:#888; letter-spacing:0.05em; }
+.fkt-strong { font-weight:600; }
+.fkt-nazev { font-size:24px; font-weight:600; color:#1c2530; text-align:right; }
+.fkt-mid { display:flex; justify-content:space-between; gap:24px; border-bottom:1px dotted #c9c9c9; padding:16px 0; }
+.fkt-mid > div { max-width:48%; }
+.fkt-small { font-size:11px; color:#555; }
+.fkt-pozn-nad { font-size:12px; color:#555; margin:14px 0 4px; }
+.fkt-tab { width:100%; border-collapse:collapse; }
+.fkt-tab th { text-align:left; font-size:11px; font-weight:600; padding:8px 4px; border-bottom:2px solid #2b2b2b; }
+.fkt-tab th.r, .fkt-tab td.r { text-align:right; white-space:nowrap; }
+.fkt-tab td { padding:10px 4px; border-bottom:1px solid #eee; vertical-align:top; }
+.fkt-celkem-radek { display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-bottom:16px; border-bottom:1px dotted #c9c9c9; gap:16px; }
+.fkt-pozn { font-size:12px; color:#555; }
+.fkt-celkem { font-size:18px; white-space:nowrap; }
+.fkt-celkem span { color:#555; font-size:14px; }
+.fkt-platba-radek { display:flex; gap:14px; margin-top:18px; align-items:stretch; }
+.fkt-qr { text-align:center; }
+.fkt-qr-popis { font-size:10px; font-weight:600; margin-bottom:4px; }
+.fkt-qr img { display:block; border:1px solid #e3e6ea; border-radius:4px; }
+.fkt-pruh { flex:1; border-radius:6px; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; align-items:center; color:#fff; }
+.fkt-pruh > div { padding:10px 12px; }
+.fkt-pruh-l { font-size:9px; opacity:0.85; }
+.fkt-pruh-v { font-weight:600; font-size:12px; }
+.fkt-podpis { margin-top:20px; }
+.fkt-podpis img { max-height:80px; max-width:240px; margin-top:6px; }
+.fkt-paticka { margin-top:20px; font-size:12px; color:#888; border-top:1px solid var(--border); padding-top:14px; }
+
 @media (max-width: 700px) {
   .dash-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -182,4 +214,6 @@ tr.klik:hover { background: #f8fafc; }
   .faktura-list { border: none; padding: 0; max-width: 100%; }
   body { background: #fff; }
   .fak-qr img { border-color: #ccc; }
+  .fkt { border:none; padding:0; max-width:100%; }
+  .fkt-pruh { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 }
