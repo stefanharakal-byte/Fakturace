@@ -17,7 +17,7 @@ function dalsiDatum(odDatum, frekvence, denVMesici) {
   return d.toISOString().slice(0, 10)
 }
 
-export default function PravidelneFaktury({ onDetail }) {
+export default function PravidelneFaktury({ onDetail, skrytNadpis }) {
   const [seznam, setSeznam] = useState([])
   const [firma, setFirma] = useState(null)
   const [odberatele, setOdberatele] = useState([])
@@ -49,7 +49,7 @@ export default function PravidelneFaktury({ onDetail }) {
       frekvence: 'mesicne', den_v_mesici: 1, splatnost_dni: 14, mena: 'CZK',
       auto_odeslat: true, aktivni: true,
       bankovni_ucet_id: ucty[0]?.id || '', ciselna_rada_id: rady[0]?.id || '',
-      polozky: [{ popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:0, sleva:0 }],
+      polozky: [{ popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:'', sleva:'' }],
       dalsi_vystaveni: dnes(),
     })
   }
@@ -57,7 +57,7 @@ export default function PravidelneFaktury({ onDetail }) {
   function setPol(i, k, v) {
     const pol = [...edit.polozky]; pol[i] = { ...pol[i], [k]: v }; setEdit({ ...edit, polozky: pol })
   }
-  function pridejPol() { setEdit({ ...edit, polozky: [...edit.polozky, { popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:0, sleva:0 }] }) }
+  function pridejPol() { setEdit({ ...edit, polozky: [...edit.polozky, { popis:'', mnozstvi:1, jednotka:'ks', cena_za_kus:'', sleva:'' }] }) }
   function smazPol(i) { setEdit({ ...edit, polozky: edit.polozky.filter((_,idx)=>idx!==i) }) }
 
   async function uloz() {
@@ -127,17 +127,22 @@ export default function PravidelneFaktury({ onDetail }) {
   }
 
   if (!loading && !firma)
-    return (<><div className="page-head"><h1>Pravidelné faktury</h1></div>
+    return (<>{!skrytNadpis && <div className="page-head"><h1>Pravidelné faktury</h1></div>}
       <div className="card"><div className="empty">Nejdřív ulož údaje firmy v Nastavení.</div></div></>)
 
   const celkemEdit = edit ? (edit.polozky||[]).reduce((s,p)=> s + Number(p.mnozstvi||0)*Number(p.cena_za_kus||0)*(1-Number(p.sleva||0)/100), 0) : 0
 
   return (
     <>
-      <div className="page-head">
-        <h1>Pravidelné faktury</h1>
-        <button className="btn-primary" onClick={novy}>+ Nová pravidelná faktura</button>
-      </div>
+      {skrytNadpis
+        ? <div className="page-head" style={{marginTop:4}}>
+            <span className="muted">{loading?'':`${seznam.length} šablon`}</span>
+            <button className="btn-primary" onClick={novy}>+ Nová pravidelná faktura</button>
+          </div>
+        : <div className="page-head">
+            <h1>Pravidelné faktury</h1>
+            <button className="btn-primary" onClick={novy}>+ Nová pravidelná faktura</button>
+          </div>}
 
       {msg && <div className={`msg ${msg.type}`} style={{marginBottom:16}}>{msg.text}</div>}
 
@@ -209,10 +214,10 @@ export default function PravidelneFaktury({ onDetail }) {
                 {(edit.polozky||[]).map((p,i)=>(
                   <tr key={i}>
                     <td><input value={p.popis} onChange={e=>setPol(i,'popis',e.target.value)} placeholder="Popis" /></td>
-                    <td><input type="number" style={{width:60}} value={p.mnozstvi} onChange={e=>setPol(i,'mnozstvi',e.target.value)} /></td>
+                    <td><input type="number" style={{width:60}} value={p.mnozstvi} onChange={e=>setPol(i,'mnozstvi',e.target.value)} onFocus={e=>e.target.select()} /></td>
                     <td><input style={{width:48}} value={p.jednotka} onChange={e=>setPol(i,'jednotka',e.target.value)} /></td>
-                    <td><input type="number" style={{width:90}} value={p.cena_za_kus} onChange={e=>setPol(i,'cena_za_kus',e.target.value)} /></td>
-                    <td><input type="number" style={{width:56}} value={p.sleva} onChange={e=>setPol(i,'sleva',e.target.value)} /></td>
+                    <td><input type="number" style={{width:90}} value={p.cena_za_kus} onChange={e=>setPol(i,'cena_za_kus',e.target.value)} onFocus={e=>e.target.select()} placeholder="0" /></td>
+                    <td><input type="number" style={{width:56}} value={p.sleva} onChange={e=>setPol(i,'sleva',e.target.value)} onFocus={e=>e.target.select()} placeholder="0" /></td>
                     <td><button className="btn-ghost" onClick={()=>smazPol(i)}>✕</button></td>
                   </tr>
                 ))}
