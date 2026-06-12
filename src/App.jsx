@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
-import { formatCastka, STAVY } from './lib/helpers'
+import { formatCastka, STAVY, formatDatum } from './lib/helpers'
 import Dashboard from './screens/Dashboard'
 import Nastaveni from './screens/Nastaveni'
 import Odberatele from './screens/Odberatele'
@@ -93,7 +93,7 @@ function SeznamFaktur({ onNova, onDetail }) {
             <tbody>{faktury.map(f=>(
               <tr key={f.id} className="klik" onClick={()=>onDetail(f.id)}>
                 <td>{f.cislo||'(koncept)'}</td><td>{f.odberatele?.nazev||'—'}</td>
-                <td>{f.datum_vystaveni||'—'}</td><td>{f.datum_splatnosti||'—'}</td>
+                <td>{formatDatum(f.datum_vystaveni)}</td><td>{formatDatum(f.datum_splatnosti)}</td>
                 <td>{formatCastka(f.castka_celkem, f.mena)}</td>
                 <td><span className={`badge ${f.stav}`}>{STAVY[f.stav]||f.stav}</span></td>
               </tr>))}
