@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { formatCastka, STAVY, formatDatum } from '../lib/helpers'
 import { ziskejIban, spaydString } from '../lib/platba'
 import { nazevBankyZUctu } from '../lib/banky'
+import { naplnSablonu, mailtoOdkaz } from '../lib/email'
 import QRCode from 'qrcode'
 
 export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
@@ -49,6 +50,14 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     await supabase.from('faktury').update({ stav }).eq('id', fakturaId); nacti()
   }
 
+  function odeslatEmail() {
+    const predmet = naplnSablonu(firma.email_predmet || 'Faktura #CISLO#', { faktura: f, firma, odberatel, ucet })
+    const telo = naplnSablonu(firma.email_text || '', { faktura: f, firma, odberatel, ucet })
+    const odkaz = mailtoOdkaz({ prijemce: odberatel?.email || '', predmet, telo })
+    window.location.href = odkaz
+    if (f.stav === 'vystavena') zmenStav('odeslana')
+  }
+
   if (!f || !firma) return <div className="card"><div className="empty">Načítám…</div></div>
 
   // barva: faktura > klient > firma > výchozí
@@ -73,6 +82,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
         <div style={{display:'flex',gap:8}}>
           <button className="btn-ghost" onClick={onZpet}>← Zpět</button>
           <button className="btn-ghost" onClick={()=>onUpravit(fakturaId)}>Upravit</button>
+          <button className="btn-ghost" onClick={odeslatEmail}>✉ Odeslat e-mailem</button>
           <button className="btn-primary" onClick={()=>window.print()}>Stáhnout / Tisk PDF</button>
         </div>
       </div>
