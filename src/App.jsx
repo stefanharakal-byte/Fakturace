@@ -49,7 +49,8 @@ export default function App() {
         {page==='faktury' && !detailId && (
           <SeznamFaktur
             onNova={()=>{ setEditId(null); setPage('novaFaktura') }}
-            onDetail={(id)=>setDetailId(id)} />
+            onDetail={(id)=>setDetailId(id)}
+            onUpravit={(id)=>{ setEditId(id); setPage('novaFaktura') }} />
         )}
         {page==='novaFaktura' && (
           <NovaFaktura fakturaId={editId}
@@ -64,20 +65,28 @@ export default function App() {
   )
 }
 
-function SeznamFaktur({ onNova, onDetail }) {
+function SeznamFaktur({ onNova, onDetail, onUpravit }) {
   const [faktury, setFaktury] = useState([])
   const [loading, setLoading] = useState(true)
   const [chyba, setChyba] = useState(null)
+  const [klientId, setKlientId] = useState(null)
 
   useEffect(() => { nacti() }, [])
   async function nacti() {
     setLoading(true); setChyba(null)
     const { data, error } = await supabase
       .from('faktury')
-      .select('id, cislo, datum_vystaveni, datum_splatnosti, castka_celkem, mena, stav, odberatele(nazev)')
+      .select('id, cislo, datum_vystaveni, datum_splatnosti, castka_celkem, mena, stav, odberatel_id, odberatele(nazev)')
       .order('created_at', { ascending:false })
     if (error) setChyba(error.message); else setFaktury(data||[])
     setLoading(false)
+  }
+
+  async function smazat(id, cislo) {
+    if (!window.confirm(`Opravdu smazat fakturu ${cislo||'(koncept)'}? Tato akce je nevratná.`)) return
+    const { error } = await supabase.from('faktury').delete().eq('id', id)
+    if (error) { alert('Chyba při mazání: ' + error.message); return }
+    setFaktury(faktury.filter(f => f.id !== id))
   }
 
   return (
@@ -93,16 +102,114 @@ function SeznamFaktur({ onNova, onDetail }) {
         : <table>
             <thead><tr><th>Číslo</th><th>Odběratel</th><th>Vystaveno</th><th>Splatnost</th><th>Částka</th><th>Stav</th></tr></thead>
             <tbody>{faktury.map(f=>(
-              <tr key={f.id} className="klik" onClick={()=>onDetail(f.id)}>
-                <td>{f.cislo||'(koncept)'}</td><td>{f.odberatele?.nazev||'—'}</td>
-                <td>{formatDatum(f.datum_vystaveni)}</td><td>{formatDatum(f.datum_splatnosti)}</td>
-                <td>{formatCastka(f.castka_celkem, f.mena)}</td>
-                <td><span className={`badge ${f.stav}`}>{STAVY[f.stav]||f.stav}</span></td>
+              <tr key={f.id} className="klik fak-row" onClick={()=>onDetail(f.id)}>
+                <td>{f.cislo||'(koncept)'}</td>
+                <td>
+                  {f.odberatel_id
+                    ? <button className="link-nazev" onClick={(e)=>{ e.stopPropagation(); setKlientId(f.odberatel_id) }}>
+                        {f.odberatele?.nazev||'—'}
+                      </button>
+                    : (f.odberatele?.nazev||'—')}
+                </td>
+                <td>{formatDatum(f.datum_vystaveni)}</td>
+                <td>{formatDatum(f.datum_splatnosti)}</td>
+                <td className="castka-skryt">{formatCastka(f.castka_celkem, f.mena)}</td>
+                <td style={{position:'relative'}}>
+                  <span className={`badge ${f.stav}`}>{STAVY[f.stav]||f.stav}</span>
+                  <span className="fak-akce">
+                    <button className="akce-btn" data-tip="Detail"
+                      onClick={(e)=>{ e.stopPropagation(); onDetail(f.id) }}>👁</button>
+                    <button className="akce-btn" data-tip="Upravit"
+                      onClick={(e)=>{ e.stopPropagation(); onUpravit(f.id) }}>✎</button>
+                    <button className="akce-btn dng" data-tip="Smazat"
+                      onClick={(e)=>{ e.stopPropagation(); smazat(f.id, f.cislo) }}>🗑</button>
+                  </span>
+                </td>
               </tr>))}
             </tbody>
           </table>}
       </div>
+
+      {klientId && <KartaKlientaModal odberatelId={klientId}
+        onZavrit={()=>setKlientId(null)}
+        onDetailFaktury={(id)=>{ setKlientId(null); onDetail(id) }} />}
     </>
+  )
+}
+
+function KartaKlientaModal({ odberatelId, onZavrit, onDetailFaktury }) {
+  const [klient, setKlient] = useState(null)
+  const [faktury, setFaktury] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { nacti() }, [odberatelId])
+  async function nacti() {
+    setLoading(true)
+    const { data: k } = await supabase.from('odberatele').select('*').eq('id', odberatelId).single()
+    const { data: f } = await supabase
+      .from('faktury')
+      .select('id, cislo, datum_vystaveni, datum_splatnosti, castka_celkem, mena, stav')
+      .eq('odberatel_id', odberatelId)
+      .neq('stav', 'stornovana')
+      .order('datum_vystaveni', { ascending:false })
+    setKlient(k); setFaktury(f||[]); setLoading(false)
+  }
+
+  const pocet = faktury.length
+  const celkem = faktury.reduce((s,f)=>s+Number(f.castka_celkem||0),0)
+  const dluh = faktury.filter(f=>f.stav!=='zaplacena').reduce((s,f)=>s+Number(f.castka_celkem||0),0)
+  const iniciály = (klient?.nazev||'?').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase()
+
+  return (
+    <div className="modal-overlay" onClick={onZavrit}>
+      <div className="modal" onClick={(e)=>e.stopPropagation()}>
+        <div className="modal-head">
+          <div className="klient-hlavicka">
+            <div className="klient-avatar">{iniciály}</div>
+            <div className="klient-hlavicka-text">
+              <div className="jmeno">{klient?.nazev||'Načítám…'}</div>
+              {klient && <div className="sub">
+                {[klient.ic && ('IČ '+klient.ic), klient.mesto].filter(Boolean).join(' · ')||'—'}
+              </div>}
+            </div>
+          </div>
+          <button className="btn-ghost" onClick={onZavrit}>✕</button>
+        </div>
+
+        {loading ? <div className="empty">Načítám…</div> : <>
+          <div className="klient-staty">
+            <div className="klient-stat">
+              <div className="klient-stat-l">Faktur</div>
+              <div className="klient-stat-v">{pocet}</div>
+            </div>
+            <div className="klient-stat">
+              <div className="klient-stat-l">Celkem</div>
+              <div className="klient-stat-v">{formatCastka(celkem)}</div>
+            </div>
+            <div className="klient-stat">
+              <div className="klient-stat-l">Nezaplaceno</div>
+              <div className={'klient-stat-v'+(dluh>0?' dluh':' zaplaceno')}>{formatCastka(dluh)}</div>
+            </div>
+          </div>
+
+          {faktury.length===0
+            ? <div className="empty">Tento klient zatím nemá žádné faktury.</div>
+            : <div className="card" style={{marginTop:4}}>
+                <table>
+                  <thead><tr><th>Číslo</th><th>Vystaveno</th><th>Částka</th><th>Stav</th></tr></thead>
+                  <tbody>{faktury.map(f=>(
+                    <tr key={f.id} className="klik" onClick={()=>onDetailFaktury(f.id)}>
+                      <td>{f.cislo||'(koncept)'}</td>
+                      <td>{formatDatum(f.datum_vystaveni)}</td>
+                      <td>{formatCastka(f.castka_celkem, f.mena)}</td>
+                      <td><span className={`badge ${f.stav}`}>{STAVY[f.stav]||f.stav}</span></td>
+                    </tr>))}
+                  </tbody>
+                </table>
+              </div>}
+        </>}
+      </div>
+    </div>
   )
 }
 
