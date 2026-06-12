@@ -252,7 +252,7 @@ function Emaily() {
   async function uloz() {
     setBusy(true); setMsg(null)
     const res = await supabase.from('firmy')
-      .update({ email_predmet: f.email_predmet, email_text: f.email_text })
+      .update({ email_predmet: f.email_predmet, email_text: f.email_text, email_odesilatel: f.email_odesilatel })
       .eq('id', f.id)
     if (res.error) setMsg({ type:'err', text: res.error.message })
     else setMsg({ type:'ok', text:'Uloženo.' })
@@ -263,7 +263,13 @@ function Emaily() {
 
   return (
     <div className="card pad">
-      <p className="muted" style={{marginTop:0}}>Šablona e-mailu, který se otevře po kliknutí na „Odeslat e-mailem" u faktury. Proměnné se samy nahradí hodnotami z faktury.</p>
+      <p className="muted" style={{marginTop:0}}>Šablona e-mailu, který se odešle po kliknutí na „Odeslat e-mailem" u faktury. Proměnné se samy nahradí hodnotami z faktury.</p>
+      <div className="field">
+        <label>Odesílací adresa (z ověřené domény)</label>
+        <input value={f.email_odesilatel||''} onChange={e=>setF({...f,email_odesilatel:e.target.value})}
+          placeholder="např. faktury@workai.cz nebo Štefan Harakal <faktury@workai.cz>" />
+        <p className="muted" style={{fontSize:12,marginTop:4}}>Můžeš použít jakoukoli adresu na ověřené doméně. Pro hezké jméno odesílatele zadej formát: <code>Jméno &lt;adresa@workai.cz&gt;</code></p>
+      </div>
       <div className="field">
         <label>Předmět e-mailu</label>
         <input value={f.email_predmet||''} onChange={e=>setF({...f,email_predmet:e.target.value})}
