@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 export default function Odberatele() {
   const [seznam, setSeznam] = useState([])
   const [firmaId, setFirmaId] = useState(null)
+  const [ucty, setUcty] = useState([])
   const [edit, setEdit] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -15,12 +16,15 @@ export default function Odberatele() {
       setFirmaId(firma.id)
       const { data } = await supabase.from('odberatele').select('*').eq('firma_id', firma.id).order('nazev')
       setSeznam(data || [])
+      const { data: u } = await supabase.from('bankovni_ucty').select('*').eq('firma_id', firma.id).order('created_at')
+      setUcty(u || [])
     }
     setLoading(false)
   }
 
   async function uloz() {
     const payload = { ...edit, firma_id: firmaId }
+    if (!payload.vychozi_bankovni_ucet_id) payload.vychozi_bankovni_ucet_id = null
     let res
     if (edit.id) res = await supabase.from('odberatele').update(payload).eq('id', edit.id)
     else res = await supabase.from('odberatele').insert(payload)
@@ -60,6 +64,16 @@ export default function Odberatele() {
             <div className="field"><label>Výchozí měna</label>
               <select value={edit.vychozi_mena||'CZK'} onChange={e=>setEdit({...edit,vychozi_mena:e.target.value})}>
                 <option>CZK</option><option>EUR</option></select></div>
+            <div className="field"><label>Výchozí bankovní účet</label>
+              <select value={edit.vychozi_bankovni_ucet_id||''} onChange={e=>setEdit({...edit,vychozi_bankovni_ucet_id:e.target.value})}>
+                <option value="">— žádný —</option>
+                {ucty.map(u=><option key={u.id} value={u.id}>{u.nazev} ({u.mena})</option>)}
+              </select></div>
+          </div>
+          <div className="field" style={{marginTop:14}}>
+            <label>Výchozí text / poznámka na faktuře</label>
+            <textarea value={edit.vychozi_text||''} onChange={e=>setEdit({...edit,vychozi_text:e.target.value})} rows={2}
+              placeholder="Např. Děkujeme za spolupráci." />
           </div>
           <div style={{marginTop:14,display:'flex',gap:8}}>
             <button className="btn-primary" onClick={uloz}>Uložit</button>
