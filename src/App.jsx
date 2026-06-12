@@ -6,6 +6,7 @@ import Nastaveni from './screens/Nastaveni'
 import Odberatele from './screens/Odberatele'
 import NovaFaktura from './screens/NovaFaktura'
 import DetailFaktury from './screens/DetailFaktury'
+import PravidelneFaktury from './screens/PravidelneFaktury'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -30,7 +31,7 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar no-print">
         <div className="brand">📄 Fakturace</div>
-        {[['prehled','Přehled'],['faktury','Faktury'],['odberatele','Odběratelé'],['nastaveni','Nastavení']].map(([k,v])=>(
+        {[['prehled','Přehled'],['faktury','Faktury'],['pravidelne','Pravidelné'],['odberatele','Odběratelé'],['nastaveni','Nastavení']].map(([k,v])=>(
           <button key={k} className={'nav-item'+(page===k?' active':'')} onClick={()=>jdiNa(k)}>{v}</button>
         ))}
         <div className="sidebar-bottom">
@@ -56,6 +57,7 @@ export default function App() {
             onZrusit={()=>jdiNa('faktury')} />
         )}
         {page==='odberatele' && <Odberatele />}
+        {page==='pravidelne' && <PravidelneFaktury onDetail={otevriFakturu} />}
         {page==='nastaveni' && <Nastaveni />}
       </main>
     </div>
