@@ -199,7 +199,7 @@ tr.klik:hover { background: #f8fafc; }
 .fkt-qr-popis { font-size:10px; font-weight:600; margin-bottom:4px; }
 .fkt-qr img { display:block; border:1px solid #e3e6ea; border-radius:4px; }
 .fkt-pruh { flex:1; border-radius:6px; display:grid; grid-template-columns:2.4fr 1fr 1fr 1fr; align-items:center; color:#fff; line-height:1.15; }
-.fkt-pruh > div { padding:4px 12px; position:relative; }
+.fkt-pruh > div { padding:8px 12px; position:relative; }
 .fkt-pruh > div + div::before { content:''; position:absolute; left:0; top:20%; height:60%; width:1px; background:rgba(255,255,255,0.35); }
 .fkt-pruh-l { font-size:8px; opacity:0.9; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:0; white-space:nowrap; }
 .fkt-pruh-v { font-weight:800; font-size:12px; letter-spacing:0; white-space:nowrap; }
