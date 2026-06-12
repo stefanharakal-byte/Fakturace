@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatCastka, formatDatum, STAVY } from '../lib/helpers'
 
-export default function Odberatele() {
+export default function Odberatele({ autoNovy, onAutoNovyHotovo }) {
   const [seznam, setSeznam] = useState([])
   const [firmaId, setFirmaId] = useState(null)
   const [ucty, setUcty] = useState([])
@@ -12,6 +12,16 @@ export default function Odberatele() {
   const [hledej, setHledej] = useState('')
 
   useEffect(() => { nacti() }, [])
+
+  // Otevření formuláře nového odběratele z tlačítka „+ Vytvořit nový"
+  useEffect(() => {
+    if (autoNovy) {
+      setKarta(null)
+      setEdit({ vychozi_splatnost:14, vychozi_mena:'CZK', vychozi_jazyk:'cs' })
+      onAutoNovyHotovo && onAutoNovyHotovo()
+    }
+  }, [autoNovy])
+
   async function nacti() {
     setLoading(true)
     const { data: firma } = await supabase.from('firmy').select('id').limit(1).maybeSingle()
