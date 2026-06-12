@@ -197,7 +197,7 @@ tr.klik:hover { background: #f8fafc; }
 .fkt-qr-popis { font-size:10px; font-weight:600; margin-bottom:4px; }
 .fkt-qr img { display:block; border:1px solid #e3e6ea; border-radius:4px; }
 .fkt-pruh { flex:1; border-radius:6px; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; align-items:center; color:#fff; }
-.fkt-pruh > div { padding:10px 12px; }
+.fkt-pruh > div { padding:6px 12px; }
 .fkt-pruh-l { font-size:9px; opacity:0.85; }
 .fkt-pruh-v { font-weight:600; font-size:12px; }
 .fkt-podpis { margin-top:20px; }
