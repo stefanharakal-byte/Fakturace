@@ -52,6 +52,46 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     await supabase.from('faktury').update({ stav }).eq('id', fakturaId); nacti()
   }
 
+  async function stornovat() {
+    if (!window.confirm('Opravdu stornovat tuto fakturu? Zůstane v databázi, ale označí se jako stornovaná.')) return
+    await zmenStav('stornovana')
+    setOdeslMsg({ type:'ok', text:'Faktura byla stornována.' })
+  }
+
+  async function duplikovat() {
+    setOdeslMsg(null); setOdesilam(true)
+    try {
+      // Nová faktura jako koncept – kopie hlavičky bez čísla, VS, s dnešním datem
+      const dnesISO = new Date().toISOString().slice(0,10)
+      const splat = (() => {
+        const dny = odberatel?.vychozi_splatnost || 14
+        const d = new Date(); d.setDate(d.getDate() + Number(dny))
+        return d.toISOString().slice(0,10)
+      })()
+      const payload = {
+        firma_id: f.firma_id, odberatel_id: f.odberatel_id, ciselna_rada_id: f.ciselna_rada_id,
+        bankovni_ucet_id: f.bankovni_ucet_id, cislo: null, variabilni_symbol: null,
+        datum_vystaveni: dnesISO, datum_splatnosti: splat, datum_plneni: dnesISO,
+        mena: f.mena, kurz: f.kurz || 1, jazyk: f.jazyk, poznamka: f.poznamka,
+        barva_faktury: f.barva_faktury, poznamka_nad: f.poznamka_nad, stav: 'koncept',
+        castka_bez_dph: f.castka_bez_dph, castka_dph: f.castka_dph, castka_celkem: f.castka_celkem,
+      }
+      const { data: nova, error } = await supabase.from('faktury').insert(payload).select().single()
+      if (error) throw error
+
+      if (polozky.length) {
+        const kopiePol = polozky.map((p,i)=>({
+          faktura_id: nova.id, poradi: i, popis: p.popis, mnozstvi: p.mnozstvi,
+          jednotka: p.jednotka, cena_za_kus: p.cena_za_kus, sazba_dph: 0, sleva: p.sleva||0, mezisoucet: p.mezisoucet,
+        }))
+        await supabase.from('polozky_faktury').insert(kopiePol)
+      }
+      onUpravit(nova.id)
+    } catch (e) {
+      setOdeslMsg({ type:'err', text:'Chyba duplikace: ' + (e.message || e) })
+    } finally { setOdesilam(false) }
+  }
+
   function otevritVKlientu() {
     const predmet = naplnSablonu(firma.email_predmet || 'Faktura #CISLO#', { faktura: f, firma, odberatel, ucet })
     const telo = naplnSablonu(firma.email_text || '', { faktura: f, firma, odberatel, ucet })
@@ -162,19 +202,39 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     <>
       <div className="page-head no-print">
         <h1>Faktura {f.cislo||'(koncept)'}</h1>
-        <div style={{display:'flex',gap:8}}>
-          <button className="btn-ghost" onClick={onZpet}>← Zpět</button>
-          <button className="btn-ghost" onClick={()=>onUpravit(fakturaId)}>Upravit</button>
-          <button className="btn-primary" onClick={odeslatEmail} disabled={odesilam}>{odesilam?'Pracuji…':'✉ Odeslat e-mailem'}</button>
-          <button className="btn-ghost" onClick={stahniServerovePdf} disabled={odesilam}>Stáhnout PDF</button>
-        </div>
+        <button className="btn-ghost" onClick={onZpet}>← Zpět na seznam</button>
       </div>
 
-      <div className="no-print" style={{marginBottom:16,display:'flex',gap:8,alignItems:'center'}}>
+      <div className="akce-lista no-print">
+        <button className="akce-hl" onClick={odeslatEmail} disabled={odesilam}>
+          <span className="akce-ikona">✉</span>{odesilam?'Pracuji…':'Odeslat e-mailem'}
+        </button>
+        <button className="akce-tl" onClick={stahniServerovePdf} disabled={odesilam}>
+          <span className="akce-ikona">⤓</span>Stáhnout PDF
+        </button>
+        {f.stav!=='zaplacena' && (
+          <button className="akce-tl" onClick={()=>zmenStav('zaplacena')} disabled={odesilam}>
+            <span className="akce-ikona">✓</span>Označit zaplaceno
+          </button>
+        )}
+        <button className="akce-tl" onClick={()=>onUpravit(fakturaId)} disabled={odesilam}>
+          <span className="akce-ikona">✎</span>Upravit
+        </button>
+        <button className="akce-tl" onClick={duplikovat} disabled={odesilam}>
+          <span className="akce-ikona">⧉</span>Duplikovat
+        </button>
+        {f.stav!=='stornovana' && (
+          <button className="akce-tl dng" onClick={stornovat} disabled={odesilam}>
+            <span className="akce-ikona">⊘</span>Stornovat
+          </button>
+        )}
+      </div>
+
+      <div className="no-print" style={{marginBottom:16,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
         <span className="muted">Stav:</span>
         <span className={`badge ${f.stav}`}>{STAVY[f.stav]||f.stav}</span>
-        {f.stav!=='zaplacena' && <button className="btn-ghost" onClick={()=>zmenStav('zaplacena')}>Označit jako zaplacenou</button>}
         {f.stav==='koncept' && <button className="btn-ghost" onClick={()=>zmenStav('vystavena')}>Označit jako vystavenou</button>}
+        {f.stav==='zaplacena' && <button className="btn-ghost" onClick={()=>zmenStav('vystavena')}>Zrušit označení zaplaceno</button>}
       </div>
 
       {odeslMsg && <div className={`msg ${odeslMsg.type} no-print`} style={{marginBottom:16}}>{odeslMsg.text}
