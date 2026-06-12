@@ -114,6 +114,16 @@ export default function Odberatele() {
               <textarea value={edit.vychozi_text||''} onChange={e=>setEdit({...edit,vychozi_text:e.target.value})} rows={2}
                 placeholder="Např. Děkujeme za spolupráci." />
             </div>
+            <div className="field">
+              <label>Barva faktury pro tohoto klienta (nepovinné)</label>
+              <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                <input type="color" value={edit.barva_faktury||'#0f766e'} onChange={e=>setEdit({...edit,barva_faktury:e.target.value})}
+                  style={{width:48,height:40,padding:2,cursor:'pointer'}} />
+                <input value={edit.barva_faktury||''} onChange={e=>setEdit({...edit,barva_faktury:e.target.value})}
+                  placeholder="přebírá firemní" style={{maxWidth:160}} />
+                {edit.barva_faktury && <button className="btn-ghost" onClick={()=>setEdit({...edit,barva_faktury:null})}>Vymazat</button>}
+              </div>
+            </div>
             <div style={{marginTop:16,display:'flex',gap:8,justifyContent:'space-between'}}>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn-primary" onClick={uloz}>Uložit</button>
