@@ -5,6 +5,8 @@ import { ziskejIban, spaydString } from '../lib/platba'
 import { nazevBankyZUctu } from '../lib/banky'
 import { naplnSablonu, mailtoOdkaz } from '../lib/email'
 import QRCode from 'qrcode'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
   const [f, setF] = useState(null)
@@ -13,6 +15,8 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
   const [ucet, setUcet] = useState(null)
   const [polozky, setPolozky] = useState([])
   const [qrUrl, setQrUrl] = useState(null)
+  const [odesilam, setOdesilam] = useState(false)
+  const [odeslMsg, setOdeslMsg] = useState(null)
 
   useEffect(() => { nacti() }, [fakturaId])
   async function nacti() {
@@ -50,12 +54,48 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
     await supabase.from('faktury').update({ stav }).eq('id', fakturaId); nacti()
   }
 
-  function odeslatEmail() {
+  // Záložní možnost: otevřít e-mail v klientu (mailto, bez PDF)
+  function otevritVKlientu() {
     const predmet = naplnSablonu(firma.email_predmet || 'Faktura #CISLO#', { faktura: f, firma, odberatel, ucet })
     const telo = naplnSablonu(firma.email_text || '', { faktura: f, firma, odberatel, ucet })
-    const odkaz = mailtoOdkaz({ prijemce: odberatel?.email || '', predmet, telo })
-    window.location.href = odkaz
-    if (f.stav === 'vystavena') zmenStav('odeslana')
+    window.location.href = mailtoOdkaz({ prijemce: odberatel?.email || '', predmet, telo })
+  }
+
+  // Hlavní odeslání: vyrobí PDF z náhledu a odešle přes Edge Function (Resend)
+  async function odeslatEmail() {
+    setOdeslMsg(null)
+    if (!odberatel?.email) { setOdeslMsg({ type:'err', text:'Odběratel nemá vyplněný e-mail (doplň ho v Odběratelích).' }); return }
+    const odesilatel = firma.email_odesilatel
+    if (!odesilatel) { setOdeslMsg({ type:'err', text:'Není nastavena odesílací adresa (Nastavení → E-maily).' }); return }
+
+    setOdesilam(true)
+    try {
+      const el = document.getElementById('faktura-pdf')
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+      const img = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+      const sirka = 210
+      const vyska = (canvas.height * sirka) / canvas.width
+      pdf.addImage(img, 'PNG', 0, 0, sirka, Math.min(vyska, 297))
+      const pdfBase64 = pdf.output('datauristring').split(',')[1]
+
+      const predmet = naplnSablonu(firma.email_predmet || 'Faktura #CISLO#', { faktura: f, firma, odberatel, ucet })
+      const telo = naplnSablonu(firma.email_text || '', { faktura: f, firma, odberatel, ucet })
+      const nazevSouboru = `Faktura_${f.cislo || ''}.pdf`
+
+      const { data, error } = await supabase.functions.invoke('odeslat-fakturu', {
+        body: { prijemce: odberatel.email, predmet, telo, pdfBase64, nazevSouboru, odesilatel },
+      })
+      if (error) throw error
+      if (!data?.ok) throw new Error(data?.error || 'Odeslání selhalo.')
+
+      setOdeslMsg({ type:'ok', text:`E-mail odeslán na ${odberatel.email}.` })
+      if (f.stav !== 'zaplacena') zmenStav('odeslana')
+    } catch (e) {
+      setOdeslMsg({ type:'err', text: 'Chyba odeslání: ' + (e.message || e) })
+    } finally {
+      setOdesilam(false)
+    }
   }
 
   if (!f || !firma) return <div className="card"><div className="empty">Načítám…</div></div>
@@ -82,8 +122,8 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
         <div style={{display:'flex',gap:8}}>
           <button className="btn-ghost" onClick={onZpet}>← Zpět</button>
           <button className="btn-ghost" onClick={()=>onUpravit(fakturaId)}>Upravit</button>
-          <button className="btn-ghost" onClick={odeslatEmail}>✉ Odeslat e-mailem</button>
-          <button className="btn-primary" onClick={()=>window.print()}>Stáhnout / Tisk PDF</button>
+          <button className="btn-primary" onClick={odeslatEmail} disabled={odesilam}>{odesilam?'Odesílám…':'✉ Odeslat e-mailem'}</button>
+          <button className="btn-ghost" onClick={()=>window.print()}>Tisk PDF</button>
         </div>
       </div>
 
@@ -94,7 +134,11 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
         {f.stav==='koncept' && <button className="btn-ghost" onClick={()=>zmenStav('vystavena')}>Označit jako vystavenou</button>}
       </div>
 
-      <div className="fkt">
+      {odeslMsg && <div className={`msg ${odeslMsg.type} no-print`} style={{marginBottom:16}}>{odeslMsg.text}
+        {odeslMsg.type==='err' && <> <button className="btn-ghost" style={{padding:'2px 8px'}} onClick={otevritVKlientu}>Otevřít v poště ručně</button></>}
+      </div>}
+
+      <div className="fkt" id="faktura-pdf">
         <div className="fkt-top">
           <div className="fkt-dod">
             {firma.logo_data && <img src={firma.logo_data} alt="logo" className="fkt-logo" />}
