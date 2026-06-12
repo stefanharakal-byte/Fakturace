@@ -79,6 +79,7 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
         radaPocitadlo = { id: rada.id, pocitadlo: poradi }
       }
 
+      const odber = odberatele.find(o=>o.id===f.odberatel_id)
       const payload = {
         firma_id: firma.id,
         odberatel_id: f.odberatel_id || null,
@@ -88,6 +89,8 @@ export default function NovaFaktura({ fakturaId, onHotovo, onZrusit }) {
         variabilni_symbol: f.variabilni_symbol || (cislo ? cislo.replace(/\D/g,'') : null),
         datum_vystaveni: f.datum_vystaveni, datum_splatnosti: f.datum_splatnosti, datum_plneni: f.datum_plneni,
         mena: f.mena, kurz: f.kurz||1, jazyk: f.jazyk, poznamka: f.poznamka,
+        barva_faktury: odber?.barva_faktury || firma.barva_faktury || null,
+        poznamka_nad: firma.poznamka_nad || null,
         stav: vystavit ? 'vystavena' : 'koncept',
         castka_bez_dph: celkem, castka_dph: 0, castka_celkem: celkem,
       }
