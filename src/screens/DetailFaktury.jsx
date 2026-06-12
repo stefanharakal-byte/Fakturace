@@ -50,7 +50,18 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
 
   if (!f || !firma) return <div className="card"><div className="empty">Načítám…</div></div>
 
+  // barva: faktura > klient > firma > výchozí
   const barva = f.barva_faktury || odberatel?.barva_faktury || firma.barva_faktury || '#0f766e'
+  const textNaPruhu = (() => {
+    const h = (barva || '').replace('#','')
+    if (h.length < 6) return '#ffffff'
+    const r = parseInt(h.substring(0,2),16)/255
+    const g = parseInt(h.substring(2,4),16)/255
+    const b = parseInt(h.substring(4,6),16)/255
+    const lin = c => c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4)
+    const L = 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
+    return L > 0.55 ? '#1c2530' : '#ffffff'
+  })()
   const ibanZobr = ucet ? (ucet.iban || ziskejIban(ucet) || ucet.cislo_uctu) : null
   const poznamkaNad = f.poznamka_nad || firma.poznamka_nad || 'Fakturuji částku, dle níže uvedeného rozpisu:'
 
@@ -137,7 +148,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
               <img src={qrUrl} alt="QR platba" width={100} height={100} />
             </div>
           )}
-          <div className="fkt-pruh" style={{background: barva}}>
+          <div className="fkt-pruh" style={{background: barva, color: textNaPruhu}}>
             <div><div className="fkt-pruh-l">IBAN</div><div className="fkt-pruh-v">{ibanZobr||'—'}</div></div>
             <div><div className="fkt-pruh-l">Variabilní symbol</div><div className="fkt-pruh-v">{f.variabilni_symbol||'—'}</div></div>
             <div><div className="fkt-pruh-l">Splatnost</div><div className="fkt-pruh-v">{f.datum_splatnosti}</div></div>
