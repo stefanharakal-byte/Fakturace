@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatCastka, STAVY } from '../lib/helpers'
+import { ziskejIban, spaydString } from '../lib/platba'
+import QRCode from 'qrcode'
 
 export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
   const [f, setF] = useState(null)
@@ -8,6 +10,7 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
   const [odberatel, setOdberatel] = useState(null)
   const [ucet, setUcet] = useState(null)
   const [polozky, setPolozky] = useState([])
+  const [qrUrl, setQrUrl] = useState(null)
 
   useEffect(() => { nacti() }, [fakturaId])
   async function nacti() {
@@ -19,12 +22,27 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
       const { data: od } = await supabase.from('odberatele').select('*').eq('id', fak.odberatel_id).single()
       setOdberatel(od)
     }
+    let u = null
     if (fak.bankovni_ucet_id) {
-      const { data: u } = await supabase.from('bankovni_ucty').select('*').eq('id', fak.bankovni_ucet_id).single()
+      const r = await supabase.from('bankovni_ucty').select('*').eq('id', fak.bankovni_ucet_id).single()
+      u = r.data
       setUcet(u)
     }
     const { data: pol } = await supabase.from('polozky_faktury').select('*').eq('faktura_id', fakturaId).order('poradi')
     setPolozky(pol||[])
+
+    // QR platba
+    try {
+      const iban = ziskejIban(u)
+      if (iban && fak.castka_celkem > 0) {
+        const spayd = spaydString({
+          iban, castka: fak.castka_celkem, mena: fak.mena,
+          vs: fak.variabilni_symbol, msg: 'Faktura ' + (fak.cislo || '')
+        })
+        const url = await QRCode.toDataURL(spayd, { width: 220, margin: 1 })
+        setQrUrl(url)
+      } else { setQrUrl(null) }
+    } catch (e) { setQrUrl(null) }
   }
 
   async function zmenStav(stav) {
@@ -96,7 +114,15 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
           </tbody>
         </table>
 
-        <div className="fak-celkem">Celkem k úhradě: <strong>{formatCastka(f.castka_celkem, f.mena)}</strong></div>
+        <div className="fak-platba">
+          <div className="fak-celkem">Celkem k úhradě: <strong>{formatCastka(f.castka_celkem, f.mena)}</strong></div>
+          {qrUrl && (
+            <div className="fak-qr">
+              <img src={qrUrl} alt="QR platba" width={130} height={130} />
+              <div className="fak-qr-popis">QR platba<br/>naskenuj v bankovní aplikaci</div>
+            </div>
+          )}
+        </div>
 
         {f.poznamka && <div className="fak-pozn">{f.poznamka}</div>}
         {firma.rejstrik_text && <div className="fak-paticka">{firma.rejstrik_text}</div>}
