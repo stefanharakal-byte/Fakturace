@@ -46,3 +46,12 @@ export const STAVY = {
   po_splatnosti: 'Po splatnosti',
   stornovana: 'Stornovaná',
 }
+
+// Datum z ISO (2026-06-11) na český formát (11.06.2026)
+export function formatDatum(iso) {
+  if (!iso) return '—'
+  const s = String(iso).slice(0, 10)
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return iso
+  return `${m[3]}.${m[2]}.${m[1]}`
+}
