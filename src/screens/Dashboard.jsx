@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { formatCastka } from '../lib/helpers'
+import { formatCastka, formatDatum } from '../lib/helpers'
 
 export default function Dashboard({ onDetail }) {
   const [faktury, setFaktury] = useState([])
@@ -100,7 +100,7 @@ export default function Dashboard({ onDetail }) {
                   <tr key={f.id} className="klik" onClick={()=>onDetail && onDetail(f.id)}>
                     <td>{f.cislo||'(koncept)'}</td>
                     <td>{f.odberatele?.nazev||'—'}</td>
-                    <td>{f.datum_splatnosti||'—'}</td>
+                    <td>{formatDatum(f.datum_splatnosti)}</td>
                     <td>{formatCastka(f.castka_celkem, f.mena)}</td>
                     <td><span className={'badge '+(po?'po_splatnosti':'vystavena')}>{po?'Po splatnosti':'Čeká na úhradu'}</span></td>
                   </tr>)
