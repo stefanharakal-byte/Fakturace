@@ -7,13 +7,14 @@ export default function Nastaveni() {
     <>
       <div className="page-head"><h1>Nastavení</h1></div>
       <div className="tabs">
-        {[['firma','Firma'],['ucty','Bankovní účty'],['rady','Číselné řady']].map(([k,v])=>(
+        {[['firma','Firma'],['ucty','Bankovní účty'],['rady','Číselné řady'],['emaily','E-maily']].map(([k,v])=>(
           <button key={k} className={'tab'+(zalozka===k?' active':'')} onClick={()=>setZalozka(k)}>{v}</button>
         ))}
       </div>
       {zalozka==='firma' && <Firma />}
       {zalozka==='ucty' && <Ucty />}
       {zalozka==='rady' && <Rady />}
+      {zalozka==='emaily' && <Emaily />}
     </>
   )
 }
@@ -232,6 +233,56 @@ function Rady() {
       ) : (
         <button className="btn-primary" style={{marginTop:14}} onClick={()=>setNovy({format:'{RRRR}{MM}{NN}'})}>+ Přidat řadu</button>
       )}
+    </div>
+  )
+}
+
+// ---------- E-MAILY ----------
+function Emaily() {
+  const [f, setF] = useState(null)
+  const [msg, setMsg] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => { nacti() }, [])
+  async function nacti() {
+    const { data } = await supabase.from('firmy').select('*').limit(1).maybeSingle()
+    setF(data)
+  }
+
+  async function uloz() {
+    setBusy(true); setMsg(null)
+    const res = await supabase.from('firmy')
+      .update({ email_predmet: f.email_predmet, email_text: f.email_text })
+      .eq('id', f.id)
+    if (res.error) setMsg({ type:'err', text: res.error.message })
+    else setMsg({ type:'ok', text:'Uloženo.' })
+    setBusy(false)
+  }
+
+  if (!f) return <div className="card pad"><div className="empty">Nejdřív ulož údaje firmy v záložce „Firma".</div></div>
+
+  return (
+    <div className="card pad">
+      <p className="muted" style={{marginTop:0}}>Šablona e-mailu, který se otevře po kliknutí na „Odeslat e-mailem" u faktury. Proměnné se samy nahradí hodnotami z faktury.</p>
+      <div className="field">
+        <label>Předmět e-mailu</label>
+        <input value={f.email_predmet||''} onChange={e=>setF({...f,email_predmet:e.target.value})}
+          placeholder="Faktura #CISLO# v částce #SUMA#" />
+      </div>
+      <div className="field">
+        <label>Text e-mailu</label>
+        <textarea value={f.email_text||''} onChange={e=>setF({...f,email_text:e.target.value})} rows={10} />
+      </div>
+      <div style={{marginTop:8,padding:'12px 14px',background:'#f8fafc',borderRadius:8,fontSize:13,lineHeight:1.7}}>
+        <strong>Dostupné proměnné:</strong><br/>
+        <code>#CISLO#</code> číslo faktury · <code>#SUMA#</code> částka · <code>#VAR#</code> variabilní symbol · <code>#SPLATNOST#</code> datum splatnosti<br/>
+        <code>#UCET#</code> číslo účtu · <code>#IBAN#</code> IBAN · <code>#BANKA#</code> název banky · <code>#ZPUSOB_PLATBY#</code> způsob platby<br/>
+        <code>#MOJE_FIRMA#</code> tvůj název · <code>#NAZEV_ODBERATELE#</code> jméno odběratele
+      </div>
+      <div style={{marginTop:16,display:'flex',gap:12,alignItems:'center'}}>
+        <button className="btn-primary" onClick={uloz} disabled={busy}>{busy?'Ukládám…':'Uložit šablonu'}</button>
+        {msg && <span className={`msg ${msg.type}`}>{msg.text}</span>}
+      </div>
     </div>
   )
 }
