@@ -114,4 +114,58 @@ export default function DetailFaktury({ fakturaId, onZpet, onUpravit }) {
               <div>{odberatel.ulice}</div>
               <div>{odberatel.psc} {odberatel.mesto}</div>
               {(odberatel.ico||odberatel.dic) && <div style={{marginTop:6}}>{odberatel.ico?`IČ: ${odberatel.ico}`:''}{odberatel.dic?` · DIČ: ${odberatel.dic}`:''}</div>}
-            </>) : <span className="mu
+            </>) : <span className="muted">—</span>}
+            <div style={{marginTop:8,color:'#666'}}>Datum vystavení: {formatDatum(f.datum_vystaveni)}</div>
+            <div style={{color:'#666'}}>Datum splatnosti: {formatDatum(f.datum_splatnosti)}</div>
+          </div>
+        </div>
+
+        {poznamkaNad && <div className="fkt-pozn-nad">{poznamkaNad}</div>}
+
+        <table className="fkt-tab">
+          <thead><tr style={{borderBottomColor: barva}}>
+            <th>Název položky a popis</th><th className="r">Množství</th><th className="r">Cena</th><th className="r">Celkem</th>
+          </tr></thead>
+          <tbody>
+            {polozky.map(p=>(
+              <tr key={p.id}>
+                <td>{p.popis}</td>
+                <td className="r">{p.mnozstvi} {p.jednotka}</td>
+                <td className="r">{formatCastka(p.cena_za_kus, f.mena)}</td>
+                <td className="r">{formatCastka(p.mezisoucet, f.mena)}</td>
+              </tr>))}
+          </tbody>
+        </table>
+
+        <div className="fkt-celkem-radek">
+          <div className="fkt-pozn">{f.poznamka ? `Poznámka: ${f.poznamka}` : ''}</div>
+          <div className="fkt-celkem"><span>Celkem: </span><strong>{formatCastka(f.castka_celkem, f.mena)}</strong></div>
+        </div>
+
+        <div className="fkt-platba-radek">
+          {qrUrl && (
+            <div className="fkt-qr">
+              <div className="fkt-qr-popis">QR Platba</div>
+              <img src={qrUrl} alt="QR platba" width={100} height={100} />
+            </div>
+          )}
+          <div className="fkt-pruh" style={{background: barva, color: textNaPruhu}}>
+            <div><div className="fkt-pruh-l">IBAN</div><div className="fkt-pruh-v">{ibanZobr||'—'}</div></div>
+            <div><div className="fkt-pruh-l">Variabilní symbol</div><div className="fkt-pruh-v">{f.variabilni_symbol||'—'}</div></div>
+            <div><div className="fkt-pruh-l">Splatnost</div><div className="fkt-pruh-v">{formatDatum(f.datum_splatnosti)}</div></div>
+            <div><div className="fkt-pruh-l">K úhradě</div><div className="fkt-pruh-v">{formatCastka(f.castka_celkem, f.mena)}</div></div>
+          </div>
+        </div>
+
+        {firma.podpis_data && (
+          <div className="fkt-podpis">
+            <div className="fkt-mini">Podpis a razítko:</div>
+            <img src={firma.podpis_data} alt="podpis" />
+          </div>
+        )}
+
+        {firma.rejstrik_text && <div className="fkt-paticka">{firma.rejstrik_text}</div>}
+      </div>
+    </>
+  )
+}
