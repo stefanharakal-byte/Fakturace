@@ -169,7 +169,7 @@ function KartaKlientaModal({ odberatelId, onZavrit, onDetailFaktury }) {
             <div className="klient-hlavicka-text">
               <div className="jmeno">{klient?.nazev||'Načítám…'}</div>
               {klient && <div className="sub">
-                {[klient.ic && ('IČ '+klient.ic), klient.mesto].filter(Boolean).join(' · ')||'—'}
+                {[klient.ico && ('IČ '+klient.ico), klient.mesto].filter(Boolean).join(' · ')||'—'}
               </div>}
             </div>
           </div>
