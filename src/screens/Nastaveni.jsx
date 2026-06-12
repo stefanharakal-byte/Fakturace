@@ -124,7 +124,7 @@ function Firma() {
 function Ucty() {
   const [ucty, setUcty] = useState([])
   const [firmaId, setFirmaId] = useState(null)
-  const [novy, setNovy] = useState(null)
+  const [edit, setEdit] = useState(null)
 
   useEffect(() => { nacti() }, [])
   async function nacti() {
@@ -136,42 +136,49 @@ function Ucty() {
   }
 
   async function uloz() {
-    const payload = { ...novy, firma_id: firmaId }
-    const res = await supabase.from('bankovni_ucty').insert(payload).select().single()
-    if (!res.error) { setNovy(null); nacti() }
-    else alert(res.error.message)
+    const payload = { ...edit, firma_id: firmaId }
+    let res
+    if (edit.id) res = await supabase.from('bankovni_ucty').update(payload).eq('id', edit.id)
+    else res = await supabase.from('bankovni_ucty').insert(payload)
+    if (res.error) alert(res.error.message)
+    else { setEdit(null); nacti() }
   }
   async function smaz(id) {
     if (!confirm('Smazat účet?')) return
-    await supabase.from('bankovni_ucty').delete().eq('id', id); nacti()
+    await supabase.from('bankovni_ucty').delete().eq('id', id)
+    setEdit(null); nacti()
   }
 
   if (!firmaId) return <div className="card pad"><div className="empty">Nejdřív ulož údaje firmy v záložce „Firma".</div></div>
 
   return (
     <div className="card pad">
+      <p className="muted" style={{marginTop:0}}>Název účtu slouží jen tobě pro orientaci při výběru. Na faktuře se ukáže název banky automaticky podle kódu účtu.</p>
       {ucty.length===0 && <p className="muted">Zatím žádný účet.</p>}
       {ucty.map(u=>(
         <div key={u.id} className="row-item">
           <div><strong>{u.nazev}</strong> — {u.cislo_uctu||u.iban} ({u.mena})</div>
-          <button className="btn-ghost" onClick={()=>smaz(u.id)}>Smazat</button>
+          <div style={{display:'flex',gap:6}}>
+            <button className="btn-ghost" onClick={()=>setEdit(u)}>Upravit</button>
+            <button className="btn-ghost" onClick={()=>smaz(u.id)}>Smazat</button>
+          </div>
         </div>
       ))}
-      {novy ? (
+      {edit ? (
         <div className="grid2" style={{marginTop:14}}>
-          <Pole label="Název účtu" value={novy.nazev||''} onChange={v=>setNovy({...novy,nazev:v})} />
-          <Pole label="Číslo účtu" value={novy.cislo_uctu||''} onChange={v=>setNovy({...novy,cislo_uctu:v})} />
-          <Pole label="IBAN (pro SK)" value={novy.iban||''} onChange={v=>setNovy({...novy,iban:v})} />
+          <Pole label="Interní název účtu (jen pro tebe)" value={edit.nazev||''} onChange={v=>setEdit({...edit,nazev:v})} />
+          <Pole label="Číslo účtu (např. 3515570014/3030)" value={edit.cislo_uctu||''} onChange={v=>setEdit({...edit,cislo_uctu:v})} />
+          <Pole label="IBAN (nepovinné, pro SK)" value={edit.iban||''} onChange={v=>setEdit({...edit,iban:v})} />
           <div className="field"><label>Měna</label>
-            <select value={novy.mena||'CZK'} onChange={e=>setNovy({...novy,mena:e.target.value})}>
+            <select value={edit.mena||'CZK'} onChange={e=>setEdit({...edit,mena:e.target.value})}>
               <option>CZK</option><option>EUR</option></select></div>
           <div style={{gridColumn:'1/3',display:'flex',gap:8}}>
-            <button className="btn-primary" onClick={uloz}>Uložit účet</button>
-            <button className="btn-ghost" onClick={()=>setNovy(null)}>Zrušit</button>
+            <button className="btn-primary" onClick={uloz}>{edit.id?'Uložit změny':'Uložit účet'}</button>
+            <button className="btn-ghost" onClick={()=>setEdit(null)}>Zrušit</button>
           </div>
         </div>
       ) : (
-        <button className="btn-primary" style={{marginTop:14}} onClick={()=>setNovy({mena:'CZK'})}>+ Přidat účet</button>
+        <button className="btn-primary" style={{marginTop:14}} onClick={()=>setEdit({mena:'CZK'})}>+ Přidat účet</button>
       )}
     </div>
   )
