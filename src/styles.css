@@ -207,6 +207,46 @@ tr.klik:hover { background: #f8fafc; }
 .fkt-podpis img { max-height:80px; max-width:240px; margin-top:6px; }
 .fkt-paticka { margin-top:20px; font-size:12px; color:#888; border-top:1px solid var(--border); padding-top:14px; }
 
+/* ===== Hover akce na řádku faktury ===== */
+.fak-row { position: relative; }
+.fak-akce {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  display: none; gap: 6px;
+}
+.fak-row:hover .fak-akce { display: flex; }
+.fak-row:hover .castka-skryt { visibility: hidden; }
+.akce-btn {
+  width: 32px; height: 32px; padding: 0; border-radius: 8px;
+  background: #fff; border: 1px solid var(--border); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+  position: relative; line-height: 1;
+}
+.akce-btn:hover { background: #eff4ff; border-color: var(--primary); }
+.akce-btn.dng { color: var(--red); }
+.akce-btn.dng:hover { background: #fef2f2; border-color: var(--red); }
+.akce-btn[data-tip]:hover::after {
+  content: attr(data-tip); position: absolute; bottom: -30px; left: 50%;
+  transform: translateX(-50%); background: #1c2530; color: #fff;
+  font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px;
+  white-space: nowrap; z-index: 10; pointer-events: none;
+}
+
+/* ===== Karta klienta — statistiky ===== */
+.klient-staty { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+.klient-stat { background: #f8fafc; border-radius: 8px; padding: 12px; }
+.klient-stat-l { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.klient-stat-v { font-size: 20px; font-weight: 800; }
+.klient-stat-v.zaplaceno { color: var(--green); }
+.klient-stat-v.dluh { color: var(--red); }
+.klient-avatar {
+  width: 44px; height: 44px; border-radius: 50%; background: #eef2ff; color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0;
+}
+.klient-hlavicka { display: flex; align-items: center; gap: 12px; }
+.klient-hlavicka-text { flex: 1; }
+.klient-hlavicka-text .jmeno { font-weight: 700; font-size: 16px; }
+.klient-hlavicka-text .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
 @media (max-width: 760px) {
   /* Layout: menu nahoře, obsah pod ním */
   .layout { flex-direction: column; }
@@ -235,8 +275,15 @@ tr.klik:hover { background: #f8fafc; }
   .modal-overlay { padding: 12px; }
   .modal { padding: 18px; max-width: 100%; }
   .modal .grid2 { grid-template-columns: 1fr; }
+  .klient-staty { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .klient-stat { padding: 8px; }
+  .klient-stat-v { font-size: 16px; }
 
   .pol-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+  /* Hover akce na mobilu: zobrazit vždy (není myš) */
+  .fak-akce { position: static; transform: none; display: flex; margin-top: 6px; }
+  .fak-row:hover .castka-skryt { visibility: visible; }
 
   .fkt { padding: 18px; font-size: 12px; }
   .fkt-top { flex-direction: column; gap: 10px; }
