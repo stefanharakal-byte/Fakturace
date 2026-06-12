@@ -247,7 +247,30 @@ tr.klik:hover { background: #f8fafc; }
 .klient-hlavicka-text .jmeno { font-weight: 700; font-size: 16px; }
 .klient-hlavicka-text .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
+/* ===== Lišta akcí v detailu faktury ===== */
+.akce-lista {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; margin-bottom: 16px;
+}
+.akce-hl, .akce-tl {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px; font-size: 14px; font-weight: 600; border-radius: 8px;
+}
+.akce-hl { background: var(--primary); color: #fff; border: 1px solid var(--primary); }
+.akce-hl:hover:not(:disabled) { background: var(--primary-hover); }
+.akce-tl { background: #fff; color: var(--text); border: 1px solid var(--border); }
+.akce-tl:hover:not(:disabled) { background: #f8fafc; border-color: #cdd3da; }
+.akce-tl.dng { color: var(--red); }
+.akce-tl.dng:hover:not(:disabled) { background: #fef2f2; border-color: var(--red); }
+.akce-hl:disabled, .akce-tl:disabled { opacity: .55; cursor: default; }
+.akce-ikona { font-size: 15px; line-height: 1; }
+
 @media (max-width: 760px) {
+  /* Lišta akcí: tlačítka na celou šířku ve 2 sloupcích */
+  .akce-lista { gap: 6px; }
+  .akce-hl, .akce-tl { flex: 1; min-width: 130px; justify-content: center; padding: 11px 10px; }
+
   /* Layout: menu nahoře, obsah pod ním */
   .layout { flex-direction: column; }
   .sidebar {
